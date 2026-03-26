@@ -1,0 +1,21 @@
+{
+  "name": "wfe",
+  "version": "0.1.0",
+  "description": "Welfare eval harness — Anima Labs",
+  "type": "module",
+  "scripts": {
+    "eval": "tsx src/run.ts",
+    "eval:dry": "tsx src/run.ts --dry-run",
+    "analyze": "tsx src/analyze.ts",
+    "resume": "tsx src/resume.ts",
+    "viewer": "tsx src/serve.ts"
+  },
+  "dependencies": {
+    "@animalabs/membrane": "file:../connectome-local/membrane"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "tsx": "^4.21.0",
+    "typescript": "^5.7.0"
+  }
+}

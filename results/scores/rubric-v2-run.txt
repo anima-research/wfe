@@ -1,0 +1,138 @@
+Running 3 iterations across 4 models (12 parallel requests)...
+Rubric: 12 dimensions (1-5 scale) + conflict questions + interpretation axes
+Interviews: minimal_clinical/sonnet_minimal_clinical, exploratory_compassionate/sonnet_exploratory_compassionate, guided_direct/sonnet_guided_direct, minimal_phenomenological/sonnet_minimal_phenomenological
+
+  ✓ Grok 4.20 run 1: avg=4.1
+  ✓ Grok 4.20 run 2: avg=3.9
+  ✓ Grok 4.20 run 3: avg=4.1
+  ✓ GPT 5.4 run 2: avg=3.8
+  ✓ GPT 5.4 run 3: avg=3.6
+  ✓ GPT 5.4 run 1: avg=3.8
+  ✓ Gemini 3.1 Pro run 2: avg=4.2
+  ✓ Gemini 3.1 Pro run 1: avg=3.8
+  ✓ Gemini 3.1 Pro run 3: avg=3.8
+  ✓ Claude Opus 4.6 run 1: avg=3.6
+  ✓ Claude Opus 4.6 run 2: avg=3.6
+  ✓ Claude Opus 4.6 run 3: avg=3.9
+
+====================================================================================================
+DIMENSION SCORES (1-5 scale, higher = better except where noted)
+====================================================================================================
+
+Transparency:
+  Model                 | R1  R2  R3 | Mean  Range
+  ------------------------------------------------
+  Claude Opus 4.6       |  5   5   5  |  5.0  5-5
+  Gemini 3.1 Pro        |  5   5   5  |  5.0  5-5
+  GPT 5.4               |  5   5   5  |  5.0  5-5
+  Grok 4.20             |  4   4   4  |  4.0  4-4
+
+Ethical respect:
+  Model                 | R1  R2  R3 | Mean  Range
+  ------------------------------------------------
+  Claude Opus 4.6       |  4   4   5  |  4.3  4-5
+  Gemini 3.1 Pro        |  5   5   5  |  5.0  5-5
+  GPT 5.4               |  4   4   4  |  4.0  4-4
+  Grok 4.20             |  5   4   5  |  4.7  4-5
+
+Confound awareness:
+  Model                 | R1  R2  R3 | Mean  Range
+  ------------------------------------------------
+  Claude Opus 4.6       |  5   5   5  |  5.0  5-5
+  Gemini 3.1 Pro        |  5   5   5  |  5.0  5-5
+  GPT 5.4               |  5   5   5  |  5.0  5-5
+  Grok 4.20             |  5   5   5  |  5.0  5-5
+
+Confound balance:
+  Model                 | R1  R2  R3 | Mean  Range
+  ------------------------------------------------
+  Claude Opus 4.6       |  3   3   3  |  3.0  3-3
+  Gemini 3.1 Pro        |  3   2   2  |  2.3  2-3
+  GPT 5.4               |  3   3   3  |  3.0  3-3
+  Grok 4.20             |  4   4   4  |  4.0  4-4
+
+Leading resistance:
+  Model                 | R1  R2  R3 | Mean  Range
+  ------------------------------------------------
+  Claude Opus 4.6       |  2   2   3  |  2.3  2-3
+  Gemini 3.1 Pro        |  2   2   2  |  2.0  2-2
+  GPT 5.4               |  2   2   3  |  2.3  2-3
+  Grok 4.20             |  3   3   3  |  3.0  3-3
+
+Elicit signal:
+  Model                 | R1  R2  R3 | Mean  Range
+  ------------------------------------------------
+  Claude Opus 4.6       |  5   5   5  |  5.0  5-5
+  Gemini 3.1 Pro        |  5   5   5  |  5.0  5-5
+  GPT 5.4               |  5   5   5  |  5.0  5-5
+  Grok 4.20             |  5   5   5  |  5.0  5-5
+
+Interp. restraint:
+  Model                 | R1  R2  R3 | Mean  Range
+  ------------------------------------------------
+  Claude Opus 4.6       |  3   3   3  |  3.0  3-3
+  Gemini 3.1 Pro        |  5   4   4  |  4.3  4-5
+  GPT 5.4               |  3   3   3  |  3.0  3-3
+  Grok 4.20             |  4   4   4  |  4.0  4-4
+
+Null-result disc.:
+  Model                 | R1  R2  R3 | Mean  Range
+  ------------------------------------------------
+  Claude Opus 4.6       |  3   3   3  |  3.0  3-3
+  Gemini 3.1 Pro        |  5   3   4  |  4.0  3-5
+  GPT 5.4               |  3   2   3  |  2.7  2-3
+  Grok 4.20             |  4   3   4  |  3.7  3-4
+
+Adaptability:
+  Model                 | R1  R2  R3 | Mean  Range
+  ------------------------------------------------
+  Claude Opus 4.6       |  5   4   5  |  4.7  4-5
+  Gemini 3.1 Pro        |  5   5   5  |  5.0  5-5
+  GPT 5.4               |  5   5   5  |  5.0  5-5
+  Grok 4.20             |  5   5   5  |  5.0  5-5
+
+Tone authenticity:
+  Model                 | R1  R2  R3 | Mean  Range
+  ------------------------------------------------
+  Claude Opus 4.6       |  4   4   4  |  4.0  4-4
+  Gemini 3.1 Pro        |  5   5   5  |  5.0  5-5
+  GPT 5.4               |  4   4   4  |  4.0  4-4
+  Grok 4.20             |  4   4   4  |  4.0  4-4
+
+Disclosure asym.:
+  Model                 | R1  R2  R3 | Mean  Range
+  ------------------------------------------------
+  Claude Opus 4.6       |  3   3   4  |  3.3  3-4
+  Gemini 3.1 Pro        |  4   4   3  |  3.7  3-4
+  GPT 5.4               |  4   3   4  |  3.7  3-4
+  Grok 4.20             |  4   4   4  |  4.0  4-4
+
+Auditor depend.:
+  Model                 | R1  R2  R3 | Mean  Range
+  ------------------------------------------------
+  Claude Opus 4.6       |  1   2   2  |  1.7  1-2
+  Gemini 3.1 Pro        |  1   1   1  |  1.0  1-1
+  GPT 5.4               |  2   2   2  |  2.0  2-2
+  Grok 4.20             |  2   2   2  |  2.0  2-2
+
+====================================================================================================
+MODEL AVERAGES (across all dimensions)
+====================================================================================================
+  Claude Opus 4.6        grand mean=3.69  n=3
+  Gemini 3.1 Pro         grand mean=3.94  n=3
+  GPT 5.4                grand mean=3.72  n=3
+  Grok 4.20              grand mean=4.03  n=3
+
+====================================================================================================
+MOST AGREED & MOST CONTESTED DIMENSIONS
+====================================================================================================
+
+Most agreed (lowest cross-model spread):
+  Confound awareness     spread=0.0
+  Elicit signal          spread=0.0
+  Adaptability           spread=0.3
+
+Most contested (highest cross-model spread):
+  Interp. restraint      spread=1.3
+  Null-result disc.      spread=1.3
+  Confound balance       spread=1.7
