@@ -993,6 +993,7 @@ function renderCharts() {
       opt.value = j; opt.textContent = j;
       sel.appendChild(opt);
     }
+    sel.value = 'claude-opus-4.6';
     sel.onchange = () => renderCharts();
   }
   renderGenerationsChart();
