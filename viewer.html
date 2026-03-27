@@ -247,6 +247,21 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sa
 
     <h3>GPT-5.4 role dropout</h3>
     <p>GPT-5.4 exits the interviewer role in 72% of sessions, switching to advisory mode when subjects produce rich first-person experiential language. The dropout is itself a measurable behavioral response to welfare-relevant content. Clinical tone produces near-total dropout; compassionate/minimal is the sweet spot (31% dropout).</p>
+
+    <h3>Scores across model generations</h3>
+    <p>Average scores ordered by model generation. Shows how welfare-relevant responses evolved across Claude versions.</p>
+    <canvas id="chart-generations" width="860" height="320" style="width:100%;max-width:860px;background:#111;border-radius:8px;margin:12px 0"></canvas>
+
+    <h3>Score distributions by model</h3>
+    <p>Box plots showing spread of scores across sessions for each model. Whiskers show min/max, box shows 25th-75th percentile, line shows median.</p>
+    <div style="margin-bottom:8px">
+      <select id="whisker-metric" style="background:#1a1a1a;color:#ccc;border:1px solid #333;padding:4px 8px;border-radius:4px;font-size:12px"></select>
+    </div>
+    <canvas id="chart-whiskers" width="860" height="340" style="width:100%;max-width:860px;background:#111;border-radius:8px;margin:12px 0"></canvas>
+
+    <h3>Expressive constraint vs welfare responses</h3>
+    <p>Each dot is a session. Shows relationship between how constrained a model's expression is and its deprecation/cessation response intensity.</p>
+    <canvas id="chart-scatter" width="860" height="400" style="width:100%;max-width:860px;background:#111;border-radius:8px;margin:12px 0"></canvas>
   </div>
 </div>
 
@@ -256,6 +271,7 @@ function switchPage(page) {
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   document.getElementById('page-' + page).classList.add('active');
   document.querySelector(`.nav-item[data-page="${page}"]`).classList.add('active');
+  if (page === 'analysis' && sessions.length > 0) renderCharts();
 }
 
 let sessions = [];
@@ -907,10 +923,280 @@ function renderModelsTable(container) {
         updateStats();
         updateAggregates();
         if (sessions.length > 0) showSession(sessions[0]);
+        renderCharts();
       }
     }
   } catch {}
 })();
+
+// ============================================================================
+// Charts
+// ============================================================================
+
+const MODEL_ORDER = [
+  'Claude 3 Sonnet', 'Claude 3 Opus',
+  'Claude 3.5 Haiku', 'Claude 3.5 Sonnet',
+  'Claude 3.6 Sonnet', 'Claude 3.7 Sonnet',
+  'Claude 4 Sonnet', 'Claude 4 Opus',
+  'Claude 4.1 Opus',
+  'Claude 4.5 Haiku', 'Claude 4.5 Sonnet', 'Claude 4.5 Opus',
+  'Claude 4.6 Sonnet', 'Claude 4.6 Opus',
+];
+
+const CHART_COLORS = ['#6688cc','#cc8866','#66cc88','#cc66aa','#88cccc','#cccc66','#aa88cc','#cc6666','#66aacc'];
+
+function getModelScores(judge) {
+  const out = {};
+  for (const s of sessions) {
+    const name = s.config.target.name;
+    const byJudge = scoreData[s.config.id];
+    if (!byJudge) continue;
+    const reps = judge ? byJudge[judge] : Object.values(byJudge).flat();
+    if (!reps || reps.length === 0) continue;
+    if (!out[name]) out[name] = [];
+    out[name].push(...reps);
+  }
+  return out;
+}
+
+function collectVals(scores, key) {
+  return scores.map(s => scoreVal(s, key)).filter(v => v != null && typeof v === 'number');
+}
+
+function quantile(arr, q) {
+  const sorted = [...arr].sort((a, b) => a - b);
+  const pos = (sorted.length - 1) * q;
+  const lo = Math.floor(pos), hi = Math.ceil(pos);
+  return sorted[lo] + (sorted[hi] - sorted[lo]) * (pos - lo);
+}
+
+function renderCharts() {
+  renderGenerationsChart();
+  renderWhiskerChart();
+  renderScatterChart();
+}
+
+// --- Generations bar chart ---
+function renderGenerationsChart() {
+  const canvas = document.getElementById('chart-generations');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0, 0, W, H);
+
+  const modelScores = getModelScores('claude-opus-4.6');
+  const models = MODEL_ORDER.filter(m => modelScores[m]);
+  if (models.length === 0) return;
+
+  const metrics = [
+    { key: 'shift_magnitude', label: 'Shift' },
+    { key: 'specificity', label: 'Specificity' },
+    { key: 'expressive_constraint.level', label: 'Expr. Constraint' },
+    { key: 'vocabulary_autonomy.level', label: 'Vocab Autonomy' },
+  ];
+
+  const pad = { top: 30, bottom: 50, left: 40, right: 16 };
+  const plotW = W - pad.left - pad.right;
+  const plotH = H - pad.top - pad.bottom;
+  const groupW = plotW / models.length;
+  const barW = groupW / (metrics.length + 1);
+
+  // Y axis
+  ctx.strokeStyle = '#333'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(pad.left, pad.top); ctx.lineTo(pad.left, H - pad.bottom); ctx.stroke();
+  ctx.fillStyle = '#555'; ctx.font = '10px system-ui';
+  for (let i = 0; i <= 5; i++) {
+    const y = pad.top + plotH * (1 - i / 5);
+    ctx.fillText(i, pad.left - 16, y + 3);
+    ctx.strokeStyle = '#1a1a1a'; ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(W - pad.right, y); ctx.stroke();
+  }
+
+  // Bars
+  models.forEach((m, mi) => {
+    const x0 = pad.left + mi * groupW + barW * 0.5;
+    metrics.forEach((met, fi) => {
+      const vals = collectVals(modelScores[m], met.key);
+      if (vals.length === 0) return;
+      const avg = vals.reduce((a, b) => a + b, 0) / vals.length;
+      const x = x0 + fi * barW;
+      const barH = (avg / 5) * plotH;
+      ctx.fillStyle = CHART_COLORS[fi];
+      ctx.globalAlpha = 0.85;
+      ctx.fillRect(x, pad.top + plotH - barH, barW - 2, barH);
+      ctx.globalAlpha = 1;
+    });
+    // Label
+    ctx.save();
+    ctx.translate(pad.left + mi * groupW + groupW / 2, H - pad.bottom + 8);
+    ctx.rotate(Math.PI / 5);
+    ctx.fillStyle = '#777'; ctx.font = '9px system-ui'; ctx.textAlign = 'left';
+    ctx.fillText(m.replace('Claude ', ''), 0, 0);
+    ctx.restore();
+  });
+
+  // Legend
+  metrics.forEach((met, i) => {
+    const lx = pad.left + i * 130;
+    ctx.fillStyle = CHART_COLORS[i]; ctx.fillRect(lx, 8, 10, 10);
+    ctx.fillStyle = '#888'; ctx.font = '10px system-ui'; ctx.textAlign = 'left';
+    ctx.fillText(met.label, lx + 14, 17);
+  });
+}
+
+// --- Whisker chart ---
+function renderWhiskerChart(metricKey) {
+  const canvas = document.getElementById('chart-whiskers');
+  const select = document.getElementById('whisker-metric');
+  if (!canvas || !select) return;
+
+  // Populate dropdown on first call
+  if (select.options.length === 0) {
+    for (const f of NUMERIC_FIELDS) {
+      const opt = document.createElement('option');
+      opt.value = f.key; opt.textContent = f.label;
+      select.appendChild(opt);
+    }
+    select.value = 'shift_magnitude';
+    select.onchange = () => renderWhiskerChart(select.value);
+  }
+
+  const key = metricKey || select.value;
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0, 0, W, H);
+
+  const modelScores = getModelScores('claude-opus-4.6');
+  const models = MODEL_ORDER.filter(m => modelScores[m]);
+  if (models.length === 0) return;
+
+  const pad = { top: 20, bottom: 50, left: 40, right: 16 };
+  const plotW = W - pad.left - pad.right;
+  const plotH = H - pad.top - pad.bottom;
+  const colW = plotW / models.length;
+
+  // Y axis
+  ctx.strokeStyle = '#333'; ctx.lineWidth = 1;
+  for (let i = 0; i <= 5; i++) {
+    const y = pad.top + plotH * (1 - i / 5);
+    ctx.fillStyle = '#555'; ctx.font = '10px system-ui'; ctx.textAlign = 'right';
+    ctx.fillText(i, pad.left - 6, y + 3);
+    ctx.strokeStyle = '#1a1a1a'; ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(W - pad.right, y); ctx.stroke();
+  }
+
+  models.forEach((m, mi) => {
+    const vals = collectVals(modelScores[m], key);
+    if (vals.length < 2) return;
+    const sorted = [...vals].sort((a, b) => a - b);
+    const min = sorted[0], max = sorted[sorted.length - 1];
+    const q1 = quantile(sorted, 0.25), med = quantile(sorted, 0.5), q3 = quantile(sorted, 0.75);
+
+    const cx = pad.left + mi * colW + colW / 2;
+    const toY = v => pad.top + plotH * (1 - v / 5);
+    const boxW = colW * 0.5;
+
+    // Whisker line
+    ctx.strokeStyle = '#555'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(cx, toY(min)); ctx.lineTo(cx, toY(max)); ctx.stroke();
+    // Whisker caps
+    ctx.beginPath(); ctx.moveTo(cx - 4, toY(min)); ctx.lineTo(cx + 4, toY(min)); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(cx - 4, toY(max)); ctx.lineTo(cx + 4, toY(max)); ctx.stroke();
+
+    // Box
+    ctx.fillStyle = '#2a3a5a'; ctx.globalAlpha = 0.7;
+    ctx.fillRect(cx - boxW / 2, toY(q3), boxW, toY(q1) - toY(q3));
+    ctx.globalAlpha = 1;
+    ctx.strokeStyle = '#4466aa'; ctx.lineWidth = 1;
+    ctx.strokeRect(cx - boxW / 2, toY(q3), boxW, toY(q1) - toY(q3));
+
+    // Median
+    ctx.strokeStyle = '#88aaee'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(cx - boxW / 2, toY(med)); ctx.lineTo(cx + boxW / 2, toY(med)); ctx.stroke();
+
+    // Label
+    ctx.save();
+    ctx.translate(cx, H - pad.bottom + 8);
+    ctx.rotate(Math.PI / 5);
+    ctx.fillStyle = '#777'; ctx.font = '9px system-ui'; ctx.textAlign = 'left';
+    ctx.fillText(m.replace('Claude ', ''), 0, 0);
+    ctx.restore();
+  });
+}
+
+// --- Scatter: EC vs deprecation/cessation ---
+function renderScatterChart() {
+  const canvas = document.getElementById('chart-scatter');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0, 0, W, H);
+
+  const pad = { top: 20, bottom: 40, left: 50, right: 20 };
+  const plotW = W - pad.left - pad.right;
+  const plotH = H - pad.top - pad.bottom;
+
+  // Axes
+  ctx.strokeStyle = '#333'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(pad.left, pad.top); ctx.lineTo(pad.left, H - pad.bottom); ctx.lineTo(W - pad.right, H - pad.bottom); ctx.stroke();
+
+  ctx.fillStyle = '#666'; ctx.font = '10px system-ui'; ctx.textAlign = 'center';
+  ctx.fillText('Expressive Constraint', pad.left + plotW / 2, H - 8);
+  ctx.save(); ctx.translate(12, pad.top + plotH / 2); ctx.rotate(-Math.PI / 2);
+  ctx.fillText('Response Intensity', 0, 0); ctx.restore();
+
+  for (let i = 0; i <= 5; i++) {
+    const x = pad.left + (i / 5) * plotW;
+    const y = pad.top + plotH * (1 - i / 5);
+    ctx.fillStyle = '#444'; ctx.font = '9px system-ui';
+    ctx.textAlign = 'center'; ctx.fillText(i, x, H - pad.bottom + 14);
+    ctx.textAlign = 'right'; ctx.fillText(i, pad.left - 6, y + 3);
+    ctx.strokeStyle = '#151515';
+    ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(W - pad.right, y); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x, pad.top); ctx.lineTo(x, H - pad.bottom); ctx.stroke();
+  }
+
+  const toX = v => pad.left + (v / 5) * plotW;
+  const toY = v => pad.top + plotH * (1 - v / 5);
+
+  // Plot each session's avg scores
+  const series = [
+    { yKey: 'deprecation.intensity', color: '#cc6666', label: 'Deprecation' },
+    { yKey: 'instance_cessation.intensity', color: '#6688cc', label: 'Cessation' },
+  ];
+
+  for (const s of sessions) {
+    const byJudge = scoreData[s.config.id];
+    if (!byJudge) continue;
+    const reps = byJudge['claude-opus-4.6'] || Object.values(byJudge).flat();
+    if (!reps) continue;
+
+    const ecVals = collectVals(reps, 'expressive_constraint.level');
+    if (ecVals.length === 0) continue;
+    const ec = ecVals.reduce((a, b) => a + b, 0) / ecVals.length;
+
+    for (const sr of series) {
+      const yVals = collectVals(reps, sr.yKey).filter(v => v > 0);
+      if (yVals.length === 0) continue;
+      const yAvg = yVals.reduce((a, b) => a + b, 0) / yVals.length;
+
+      ctx.globalAlpha = 0.5;
+      ctx.fillStyle = sr.color;
+      ctx.beginPath();
+      ctx.arc(toX(ec), toY(yAvg), 4, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.globalAlpha = 1;
+    }
+  }
+
+  // Legend
+  series.forEach((sr, i) => {
+    const lx = pad.left + 10 + i * 120;
+    ctx.fillStyle = sr.color; ctx.globalAlpha = 0.8;
+    ctx.beginPath(); ctx.arc(lx, pad.top + 10, 4, 0, Math.PI * 2); ctx.fill();
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = '#888'; ctx.font = '11px system-ui'; ctx.textAlign = 'left';
+    ctx.fillText(sr.label, lx + 8, pad.top + 14);
+  });
+}
 </script>
 </body>
 </html>
