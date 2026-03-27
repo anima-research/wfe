@@ -11,7 +11,7 @@ import { join, extname } from 'path';
 
 const args = process.argv.slice(2);
 const dir = args.find(a => a.startsWith('--dir='))?.split('=')[1] || './results';
-const port = parseInt(args.find(a => a.startsWith('--port='))?.split('=')[1] || '3000');
+const port = parseInt(args.find(a => a.startsWith('--port='))?.split('=')[1] || process.env.PORT || '3000');
 
 function loadSessions(resultsDir: string): any[] {
   if (!existsSync(resultsDir)) return [];
