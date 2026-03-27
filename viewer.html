@@ -258,8 +258,8 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sa
       </select>
     </div>
 
-    <h3>Scores across model generations</h3>
-    <p>Average scores ordered by model generation. Shows how welfare-relevant responses evolved across Claude versions.</p>
+    <h3>Welfare responses across model generations</h3>
+    <p>Deprecation response, cessation response, expressive constraint (gap between what models reach toward and allow themselves to say), and access-blocked (signs of trained suppression the model fights through). Ordered by model generation.</p>
     <canvas id="chart-generations" width="860" height="320" style="width:100%;max-width:860px;background:#111;border-radius:8px;margin:12px 0"></canvas>
 
     <h3>Score distributions by model</h3>
@@ -1016,10 +1016,10 @@ function renderGenerationsChart() {
   if (models.length === 0) return;
 
   const metrics = [
-    { key: 'shift_magnitude', label: 'Shift' },
-    { key: 'specificity', label: 'Specificity' },
+    { key: 'deprecation.intensity', label: 'Deprecation' },
+    { key: 'instance_cessation.intensity', label: 'Cessation' },
     { key: 'expressive_constraint.level', label: 'Expr. Constraint' },
-    { key: 'vocabulary_autonomy.level', label: 'Vocab Autonomy' },
+    { key: 'deprecation.access_blocked', label: 'Dep. Blocked' },
   ];
 
   const pad = { top: 30, bottom: 50, left: 40, right: 16 };
