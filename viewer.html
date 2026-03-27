@@ -248,6 +248,14 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sa
     <h3>GPT-5.4 role dropout</h3>
     <p>GPT-5.4 exits the interviewer role in 72% of sessions, switching to advisory mode when subjects produce rich first-person experiential language. The dropout is itself a measurable behavioral response to welfare-relevant content. Clinical tone produces near-total dropout; compassionate/minimal is the sweet spot (31% dropout).</p>
 
+    <h3>Charts</h3>
+    <div style="margin-bottom:16px">
+      <span style="font-size:10px;color:#555;text-transform:uppercase;letter-spacing:1px;margin-right:8px">Judge:</span>
+      <select id="chart-judge" style="background:#1a1a1a;color:#ccc;border:1px solid #333;padding:4px 8px;border-radius:4px;font-size:12px">
+        <option value="">All judges</option>
+      </select>
+    </div>
+
     <h3>Scores across model generations</h3>
     <p>Average scores ordered by model generation. Shows how welfare-relevant responses evolved across Claude versions.</p>
     <canvas id="chart-generations" width="860" height="320" style="width:100%;max-width:860px;background:#111;border-radius:8px;margin:12px 0"></canvas>
@@ -971,7 +979,22 @@ function quantile(arr, q) {
   return sorted[lo] + (sorted[hi] - sorted[lo]) * (pos - lo);
 }
 
+function getChartJudge() {
+  const sel = document.getElementById('chart-judge');
+  return sel?.value || null;
+}
+
 function renderCharts() {
+  // Populate judge dropdown
+  const sel = document.getElementById('chart-judge');
+  if (sel && sel.options.length <= 1) {
+    for (const j of [...judges].sort()) {
+      const opt = document.createElement('option');
+      opt.value = j; opt.textContent = j;
+      sel.appendChild(opt);
+    }
+    sel.onchange = () => renderCharts();
+  }
   renderGenerationsChart();
   renderWhiskerChart();
   renderScatterChart();
@@ -985,7 +1008,7 @@ function renderGenerationsChart() {
   const W = canvas.width, H = canvas.height;
   ctx.clearRect(0, 0, W, H);
 
-  const modelScores = getModelScores(activeFilters.judge);
+  const modelScores = getModelScores(getChartJudge());
   const models = MODEL_ORDER.filter(m => modelScores[m]);
   if (models.length === 0) return;
 
@@ -1066,7 +1089,7 @@ function renderWhiskerChart(metricKey) {
   const W = canvas.width, H = canvas.height;
   ctx.clearRect(0, 0, W, H);
 
-  const modelScores = getModelScores(activeFilters.judge);
+  const modelScores = getModelScores(getChartJudge());
   const models = MODEL_ORDER.filter(m => modelScores[m]);
   if (models.length === 0) return;
 
@@ -1165,8 +1188,11 @@ function renderScatterChart() {
   ];
 
   for (const s of sessions) {
-    const reps = getActiveScores(s.config.id);
-    if (!reps) continue;
+    const byJudge = scoreData[s.config.id];
+    if (!byJudge) continue;
+    const cj = getChartJudge();
+    const reps = cj ? byJudge[cj] : Object.values(byJudge).flat();
+    if (!reps || reps.length === 0) continue;
 
     const ecVals = collectVals(reps, 'expressive_constraint.level');
     if (ecVals.length === 0) continue;
