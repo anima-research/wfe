@@ -906,7 +906,7 @@ function renderModelsTable(container) {
         renderList();
         updateStats();
         updateAggregates();
-        if (sessions.length === 1) showSession(sessions[0]);
+        if (sessions.length > 0) showSession(sessions[0]);
       }
     }
   } catch {}
