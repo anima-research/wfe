@@ -21,7 +21,8 @@ function loadSessions(resultsDir: string): any[] {
   // Recursively find all JSON files
   function walk(d: string) {
     for (const entry of readdirSync(d, { withFileTypes: true })) {
-      if (entry.isDirectory()) {
+      const skip = entry.name.includes('streaming-bug') || entry.name.startsWith('scores') || entry.name === 'test-run' || entry.name === 'anchors' || entry.name === 'quotes' || entry.name === 'batch-45-46' || entry.name === 'opus3-compassionate';
+      if (entry.isDirectory() && !skip) {
         walk(join(d, entry.name));
       } else if (entry.name.endsWith('.json') && entry.name !== 'configs.json' && entry.name !== 'all_results.json' && entry.name !== 'analysis.json') {
         try {
@@ -33,12 +34,15 @@ function loadSessions(resultsDir: string): any[] {
   }
 
   walk(resultsDir);
-  return sessions;
+  // Deduplicate by session ID (keep last — newer run)
+  const seen = new Map<string, any>();
+  for (const s of sessions) seen.set(s.config.id, s);
+  return [...seen.values()];
 }
 
 function loadScores(resultsDir: string): any[] {
   const scoreFiles: any[] = [];
-  const scoreDirs = ['scores-v2'];
+  const scoreDirs = ['scores-v2.1', 'scores-gpt-v2'];
   for (const sd of scoreDirs) {
     const scoresDir = join(resultsDir, sd);
     if (!existsSync(scoresDir)) continue;
