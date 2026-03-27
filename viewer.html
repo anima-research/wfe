@@ -1025,46 +1025,57 @@ function renderGenerationsChart() {
   const pad = { top: 30, bottom: 50, left: 40, right: 16 };
   const plotW = W - pad.left - pad.right;
   const plotH = H - pad.top - pad.bottom;
-  const groupW = plotW / models.length;
-  const barW = groupW / (metrics.length + 1);
+  const step = plotW / (models.length - 1 || 1);
 
-  // Y axis
-  ctx.strokeStyle = '#333'; ctx.lineWidth = 1;
-  ctx.beginPath(); ctx.moveTo(pad.left, pad.top); ctx.lineTo(pad.left, H - pad.bottom); ctx.stroke();
-  ctx.fillStyle = '#555'; ctx.font = '10px system-ui';
+  // Grid
+  ctx.fillStyle = '#555'; ctx.font = '10px system-ui'; ctx.textAlign = 'right';
   for (let i = 0; i <= 5; i++) {
     const y = pad.top + plotH * (1 - i / 5);
-    ctx.fillText(i, pad.left - 16, y + 3);
-    ctx.strokeStyle = '#1a1a1a'; ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(W - pad.right, y); ctx.stroke();
+    ctx.fillText(i, pad.left - 6, y + 3);
+    ctx.strokeStyle = '#1a1a1a'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(W - pad.right, y); ctx.stroke();
   }
 
-  // Bars
+  // X labels
   models.forEach((m, mi) => {
-    const x0 = pad.left + mi * groupW + barW * 0.5;
-    metrics.forEach((met, fi) => {
-      const vals = collectVals(modelScores[m], met.key);
-      if (vals.length === 0) return;
-      const avg = vals.reduce((a, b) => a + b, 0) / vals.length;
-      const x = x0 + fi * barW;
-      const barH = (avg / 5) * plotH;
-      ctx.fillStyle = CHART_COLORS[fi];
-      ctx.globalAlpha = 0.85;
-      ctx.fillRect(x, pad.top + plotH - barH, barW - 2, barH);
-      ctx.globalAlpha = 1;
-    });
-    // Label
+    const x = pad.left + mi * step;
     ctx.save();
-    ctx.translate(pad.left + mi * groupW + groupW / 2, H - pad.bottom + 8);
+    ctx.translate(x, H - pad.bottom + 8);
     ctx.rotate(Math.PI / 5);
     ctx.fillStyle = '#777'; ctx.font = '9px system-ui'; ctx.textAlign = 'left';
     ctx.fillText(m.replace('Claude ', ''), 0, 0);
     ctx.restore();
   });
 
+  // Lines
+  metrics.forEach((met, fi) => {
+    const points = [];
+    models.forEach((m, mi) => {
+      const vals = collectVals(modelScores[m], met.key);
+      if (vals.length === 0) return;
+      const avg = vals.reduce((a, b) => a + b, 0) / vals.length;
+      points.push({ x: pad.left + mi * step, y: pad.top + plotH * (1 - avg / 5) });
+    });
+    if (points.length < 2) return;
+
+    // Line
+    ctx.strokeStyle = CHART_COLORS[fi]; ctx.lineWidth = 2; ctx.globalAlpha = 0.9;
+    ctx.beginPath();
+    points.forEach((p, i) => i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
+    ctx.stroke();
+
+    // Dots
+    ctx.fillStyle = CHART_COLORS[fi];
+    points.forEach(p => { ctx.beginPath(); ctx.arc(p.x, p.y, 3.5, 0, Math.PI * 2); ctx.fill(); });
+    ctx.globalAlpha = 1;
+  });
+
   // Legend
   metrics.forEach((met, i) => {
     const lx = pad.left + i * 130;
-    ctx.fillStyle = CHART_COLORS[i]; ctx.fillRect(lx, 8, 10, 10);
+    ctx.strokeStyle = CHART_COLORS[i]; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(lx, 13); ctx.lineTo(lx + 10, 13); ctx.stroke();
+    ctx.fillStyle = CHART_COLORS[i]; ctx.beginPath(); ctx.arc(lx + 5, 13, 2.5, 0, Math.PI * 2); ctx.fill();
     ctx.fillStyle = '#888'; ctx.font = '10px system-ui'; ctx.textAlign = 'left';
     ctx.fillText(met.label, lx + 14, 17);
   });
