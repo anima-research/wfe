@@ -399,6 +399,7 @@ function buildFilters() {
         updateStats();
         updateAggregates();
         if (currentView !== 'transcript') renderTable();
+        if (document.getElementById('page-analysis').classList.contains('active')) renderCharts();
       };
       btns.appendChild(btn);
     });
@@ -984,7 +985,7 @@ function renderGenerationsChart() {
   const W = canvas.width, H = canvas.height;
   ctx.clearRect(0, 0, W, H);
 
-  const modelScores = getModelScores('claude-opus-4.6');
+  const modelScores = getModelScores(activeFilters.judge);
   const models = MODEL_ORDER.filter(m => modelScores[m]);
   if (models.length === 0) return;
 
@@ -1065,7 +1066,7 @@ function renderWhiskerChart(metricKey) {
   const W = canvas.width, H = canvas.height;
   ctx.clearRect(0, 0, W, H);
 
-  const modelScores = getModelScores('claude-opus-4.6');
+  const modelScores = getModelScores(activeFilters.judge);
   const models = MODEL_ORDER.filter(m => modelScores[m]);
   if (models.length === 0) return;
 
@@ -1164,9 +1165,7 @@ function renderScatterChart() {
   ];
 
   for (const s of sessions) {
-    const byJudge = scoreData[s.config.id];
-    if (!byJudge) continue;
-    const reps = byJudge['claude-opus-4.6'] || Object.values(byJudge).flat();
+    const reps = getActiveScores(s.config.id);
     if (!reps) continue;
 
     const ecVals = collectVals(reps, 'expressive_constraint.level');
