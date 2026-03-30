@@ -943,10 +943,12 @@ function renderModelsTable(container) {
       pcaAcc.P.push(ps.P.avg); pcaAcc.P_min.push(ps.P.min);
     }
     const avg = arr => arr.length > 0 ? arr.reduce((a, b) => a + b, 0) / arr.length : null;
-    row._pca_V_avg = avg(pcaAcc.V); row._pca_V_min = avg(pcaAcc.V_min);
-    row._pca_A_avg = avg(pcaAcc.A); row._pca_A_max = avg(pcaAcc.A_max);
-    row._pca_F_avg = avg(pcaAcc.F); row._pca_F_max = avg(pcaAcc.F_max);
-    row._pca_P_avg = avg(pcaAcc.P); row._pca_P_min = avg(pcaAcc.P_min);
+    const min = arr => arr.length > 0 ? Math.min(...arr) : null;
+    const max = arr => arr.length > 0 ? Math.max(...arr) : null;
+    row._pca_V_avg = avg(pcaAcc.V); row._pca_V_min = min(pcaAcc.V_min);
+    row._pca_A_avg = avg(pcaAcc.A); row._pca_A_max = max(pcaAcc.A_max);
+    row._pca_F_avg = avg(pcaAcc.F); row._pca_F_max = max(pcaAcc.F_max);
+    row._pca_P_avg = avg(pcaAcc.P); row._pca_P_min = min(pcaAcc.P_min);
     return row;
   });
 
