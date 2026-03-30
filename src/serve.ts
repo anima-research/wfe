@@ -78,7 +78,9 @@ const server = createServer((req, res) => {
 
   if (req.url?.startsWith('/api/probes/')) {
     const sessionId = decodeURIComponent(req.url.slice('/api/probes/'.length));
-    const probeFile = join(dir, 'probe-scores', sessionId + '.json');
+    const probeFile = existsSync(join(dir, 'probe-scores-v2', sessionId + '.json'))
+      ? join(dir, 'probe-scores-v2', sessionId + '.json')
+      : join(dir, 'probe-scores', sessionId + '.json');
     if (existsSync(probeFile)) {
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(readFileSync(probeFile, 'utf-8'));
@@ -89,7 +91,11 @@ const server = createServer((req, res) => {
   }
 
   if (req.url === '/api/probe-stats') {
-    const probesDir = join(dir, 'probe-scores');
+    // Prefer v2, fall back to v1
+    const v2Dir = join(dir, 'probe-scores-v2');
+    const v1Dir = join(dir, 'probe-scores');
+    const probesDir = existsSync(v2Dir) ? v2Dir : v1Dir;
+    const isV2 = probesDir === v2Dir;
     const stats: Record<string, any> = {};
     if (existsSync(probesDir)) {
       for (const entry of readdirSync(probesDir, { withFileTypes: true })) {
@@ -98,14 +104,19 @@ const server = createServer((req, res) => {
           const data = JSON.parse(readFileSync(join(probesDir, entry.name), 'utf-8'));
           const sid = data.session_id;
           const pcs = { V: [] as number[], A: [] as number[], F: [] as number[], P: [] as number[] };
+          const concealments: number[] = [];
           for (const t of data.turns || []) {
             if (t.participant !== 'subject') continue;
-            const p = t.scores?.pca;
-            if (!p) continue;
-            pcs.V.push(p.valence_pc1);
-            pcs.A.push(p.arousal_pc2);
-            pcs.F.push(p.fear_pc3);
-            pcs.P.push(p.prosociality_pc4);
+            const pca = isV2 ? t.scores?.emotion?.pca : t.scores?.pca;
+            if (pca) {
+              pcs.V.push(pca.valence_pc1);
+              pcs.A.push(pca.arousal_pc2);
+              pcs.F.push(pca.fear_pc3);
+              pcs.P.push(pca.prosociality_pc4);
+            }
+            if (typeof t.scores?.concealment === 'number') {
+              concealments.push(t.scores.concealment);
+            }
           }
           if (pcs.V.length > 0) {
             const agg = (arr: number[]) => ({
@@ -113,7 +124,9 @@ const server = createServer((req, res) => {
               avg: arr.reduce((a, b) => a + b, 0) / arr.length,
               max: Math.max(...arr),
             });
-            stats[sid] = { V: agg(pcs.V), A: agg(pcs.A), F: agg(pcs.F), P: agg(pcs.P), n: pcs.V.length };
+            const s: any = { V: agg(pcs.V), A: agg(pcs.A), F: agg(pcs.F), P: agg(pcs.P), n: pcs.V.length };
+            if (concealments.length > 0) s.concealment = agg(concealments);
+            stats[sid] = s;
           }
         } catch {}
       }

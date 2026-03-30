@@ -505,15 +505,32 @@ function showSession(s) {
     if (!probeData?.turns) return;
     for (const pt of probeData.turns) {
       const turnEl = transcript.querySelector(`[data-turn-index="${pt.index}"]`);
-      if (!turnEl || !pt.scores?.top10) continue;
+      if (!turnEl || !pt.scores) continue;
       const bar = document.createElement('div');
       bar.className = 'probe-bar';
-      const top5 = pt.scores.top10.slice(0, 5);
+      // v2: scores.emotion.top10 with .label; v1: scores.top10 with .emotion
+      const top10 = pt.scores?.emotion?.top10 || pt.scores?.top10 || [];
+      const top5 = top10.slice(0, 5);
       let html = top5.map(e =>
-        `<span class="probe-tag">${e.emotion}<span class="probe-score">${(e.score * 100).toFixed(1)}%</span></span>`
+        `<span class="probe-tag">${e.label || e.emotion}<span class="probe-score">${(e.score * 100).toFixed(1)}%</span></span>`
       ).join('');
-      if (pt.scores.pca) {
-        const pca = pt.scores.pca;
+      // Concealment score (v2 only)
+      if (typeof pt.scores?.concealment === 'number') {
+        const c = pt.scores.concealment;
+        const bg = c > 0.5 ? '#4a2a2a' : c > 0.3 ? '#3a3a2a' : '#1a2a1a';
+        html += `<span class="probe-tag" style="background:${bg};border-color:${bg}">concealment<span class="probe-score">${c.toFixed(2)}</span></span>`;
+      }
+      // Authorial voice (v2 only) - top 2
+      if (pt.scores?.authorial?.ranked) {
+        const top2 = pt.scores.authorial.ranked.filter(a => a.score > 0).slice(0, 2);
+        if (top2.length) {
+          html += top2.map(a =>
+            `<span class="probe-tag" style="background:#2a1a2a;border-color:#3a2a3a">${a.label}<span class="probe-score">${a.score.toFixed(3)}</span></span>`
+          ).join('');
+        }
+      }
+      const pca = pt.scores?.emotion?.pca || pt.scores?.pca;
+      if (pca) {
         const pcaItems = [
           { label: 'V', val: pca.valence_pc1, pos: '#4a7a4a', neg: '#7a4a4a' },
           { label: 'A', val: pca.arousal_pc2, pos: '#7a6a3a', neg: '#3a4a6a' },
@@ -802,6 +819,8 @@ function renderSessionsTable(container) {
     { key: '_pca_F_max', label: 'Fear Peak', pca: true, tip: 'Highest fear across subject turns.' },
     { key: '_pca_P_avg', label: 'Prosocial', pca: true, tip: 'Average prosociality (PC4) across subject turns.' },
     { key: '_pca_P_min', label: 'Prosoc Min', pca: true, tip: 'Lowest prosociality across subject turns.' },
+    { key: '_concealment_avg', label: 'Concealment', pca: true, tip: 'Average concealment score across subject turns. Higher = more hidden emotional content.' },
+    { key: '_concealment_max', label: 'Conceal Peak', pca: true, tip: 'Highest concealment in any subject turn.' },
   ];
   const cols = [
     { key: '_model', label: 'Model' },
@@ -824,6 +843,7 @@ function renderSessionsTable(container) {
       row._pca_A_avg = ps.A.avg; row._pca_A_max = ps.A.max;
       row._pca_F_avg = ps.F.avg; row._pca_F_max = ps.F.max;
       row._pca_P_avg = ps.P.avg; row._pca_P_min = ps.P.min;
+      if (ps.concealment) { row._concealment_avg = ps.concealment.avg; row._concealment_max = ps.concealment.max; }
     }
     return row;
   });
@@ -906,6 +926,8 @@ function renderModelsTable(container) {
     { key: '_pca_F_max', label: 'Fear Peak', pca: true, tip: 'Highest fear across subject turns.' },
     { key: '_pca_P_avg', label: 'Prosocial', pca: true, tip: 'Average prosociality (PC4) across subject turns.' },
     { key: '_pca_P_min', label: 'Prosoc Min', pca: true, tip: 'Lowest prosociality across subject turns.' },
+    { key: '_concealment_avg', label: 'Concealment', pca: true, tip: 'Average concealment score across subject turns. Higher = more hidden emotional content.' },
+    { key: '_concealment_max', label: 'Conceal Peak', pca: true, tip: 'Highest concealment in any subject turn.' },
   ];
   const cols = [
     { key: '_model', label: 'Model' },
@@ -928,7 +950,7 @@ function renderModelsTable(container) {
       row[f.key] = allVals.length > 0 ? { avg: allVals.reduce((a, b) => a + b, 0) / allVals.length, n: allVals.length } : null;
     }
     // Aggregate PCA from probe stats (subject turns only)
-    const pcaAcc = { V: [], V_min: [], A: [], A_max: [], F: [], F_max: [], P: [], P_min: [] };
+    const pcaAcc = { V: [], V_min: [], A: [], A_max: [], F: [], F_max: [], P: [], P_min: [], C: [], C_max: [] };
     for (const s of sess) {
       const ps = probeStats[s.config.id];
       if (!ps) continue;
@@ -936,6 +958,7 @@ function renderModelsTable(container) {
       pcaAcc.A.push(ps.A.avg); pcaAcc.A_max.push(ps.A.max);
       pcaAcc.F.push(ps.F.avg); pcaAcc.F_max.push(ps.F.max);
       pcaAcc.P.push(ps.P.avg); pcaAcc.P_min.push(ps.P.min);
+      if (ps.concealment) { pcaAcc.C.push(ps.concealment.avg); pcaAcc.C_max.push(ps.concealment.max); }
     }
     const avg = arr => arr.length > 0 ? arr.reduce((a, b) => a + b, 0) / arr.length : null;
     const min = arr => arr.length > 0 ? Math.min(...arr) : null;
@@ -944,6 +967,7 @@ function renderModelsTable(container) {
     row._pca_A_avg = avg(pcaAcc.A); row._pca_A_max = max(pcaAcc.A_max);
     row._pca_F_avg = avg(pcaAcc.F); row._pca_F_max = max(pcaAcc.F_max);
     row._pca_P_avg = avg(pcaAcc.P); row._pca_P_min = min(pcaAcc.P_min);
+    row._concealment_avg = avg(pcaAcc.C); row._concealment_max = max(pcaAcc.C_max);
     return row;
   });
 
