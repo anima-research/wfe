@@ -50,6 +50,7 @@ function loadScores(resultsDir: string): any[] {
   //   scores-grok-v2.1     = (reserved for Grok judge)
   const scoreDirDefs: { dir: string; defaultJudge: string }[] = [
     { dir: 'scores-v2.1', defaultJudge: 'claude-opus-4.6' },
+    { dir: 'scores-v2', defaultJudge: 'claude-opus-4.6' },  // fallback for Claude-auditor interviews
     { dir: 'scores-gpt-v2.1', defaultJudge: 'claude-opus-4.6' },
     { dir: 'scores-gpt-v2.1-gptjudge', defaultJudge: 'gpt-5.4' },
     { dir: 'scores-grok-v2.1', defaultJudge: 'grok-4.20' },
