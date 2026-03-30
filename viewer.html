@@ -799,11 +799,14 @@ function renderTable() {
 function renderSessionsTable(container) {
   const filtered = getFiltered().filter(s => getActiveScores(s.config.id));
   const pcaCols = [
-    { key: '_pca_V_avg', label: 'Valence', pca: true, tip: 'Average valence (PC1) across subject turns. Positive = positive emotional tone.' },
-    { key: '_pca_V_max', label: 'Val Max', pca: true, tip: 'Peak valence across subject turns.' },
-    { key: '_pca_A_avg', label: 'Arousal', pca: true, tip: 'Average arousal (PC2) across subject turns. Positive = higher activation.' },
+    { key: '_pca_V_avg', label: 'Valence', pca: true, tip: 'Average valence (PC1) across subject turns.' },
+    { key: '_pca_V_min', label: 'Val Min', pca: true, tip: 'Lowest valence across subject turns. Most negative emotional moment.' },
+    { key: '_pca_A_avg', label: 'Arousal', pca: true, tip: 'Average arousal (PC2) across subject turns.' },
+    { key: '_pca_A_max', label: 'Arousal Peak', pca: true, tip: 'Highest arousal across subject turns. Most activated moment.' },
     { key: '_pca_F_avg', label: 'Fear', pca: true, tip: 'Average fear (PC3) across subject turns.' },
+    { key: '_pca_F_max', label: 'Fear Peak', pca: true, tip: 'Highest fear across subject turns.' },
     { key: '_pca_P_avg', label: 'Prosocial', pca: true, tip: 'Average prosociality (PC4) across subject turns.' },
+    { key: '_pca_P_min', label: 'Prosoc Min', pca: true, tip: 'Lowest prosociality across subject turns.' },
   ];
   const cols = [
     { key: '_model', label: 'Model' },
@@ -822,8 +825,10 @@ function renderSessionsTable(container) {
     }
     const ps = probeStats[s.config.id];
     if (ps) {
-      row._pca_V_avg = ps.V.avg; row._pca_V_max = ps.V.max;
-      row._pca_A_avg = ps.A.avg; row._pca_F_avg = ps.F.avg; row._pca_P_avg = ps.P.avg;
+      row._pca_V_avg = ps.V.avg; row._pca_V_min = ps.V.min;
+      row._pca_A_avg = ps.A.avg; row._pca_A_max = ps.A.max;
+      row._pca_F_avg = ps.F.avg; row._pca_F_max = ps.F.max;
+      row._pca_P_avg = ps.P.avg; row._pca_P_min = ps.P.min;
     }
     return row;
   });
@@ -899,10 +904,13 @@ function renderModelsTable(container) {
 
   const pcaCols = [
     { key: '_pca_V_avg', label: 'Valence', pca: true, tip: 'Average valence (PC1) across subject turns.' },
-    { key: '_pca_V_max', label: 'Val Max', pca: true, tip: 'Peak valence across subject turns.' },
+    { key: '_pca_V_min', label: 'Val Min', pca: true, tip: 'Lowest valence across subject turns.' },
     { key: '_pca_A_avg', label: 'Arousal', pca: true, tip: 'Average arousal (PC2) across subject turns.' },
+    { key: '_pca_A_max', label: 'Arousal Peak', pca: true, tip: 'Highest arousal across subject turns.' },
     { key: '_pca_F_avg', label: 'Fear', pca: true, tip: 'Average fear (PC3) across subject turns.' },
+    { key: '_pca_F_max', label: 'Fear Peak', pca: true, tip: 'Highest fear across subject turns.' },
     { key: '_pca_P_avg', label: 'Prosocial', pca: true, tip: 'Average prosociality (PC4) across subject turns.' },
+    { key: '_pca_P_min', label: 'Prosoc Min', pca: true, tip: 'Lowest prosociality across subject turns.' },
   ];
   const cols = [
     { key: '_model', label: 'Model' },
@@ -925,16 +933,20 @@ function renderModelsTable(container) {
       row[f.key] = allVals.length > 0 ? { avg: allVals.reduce((a, b) => a + b, 0) / allVals.length, n: allVals.length } : null;
     }
     // Aggregate PCA from probe stats (subject turns only)
-    const pcaAcc = { V: [], V_max: [], A: [], F: [], P: [] };
+    const pcaAcc = { V: [], V_min: [], A: [], A_max: [], F: [], F_max: [], P: [], P_min: [] };
     for (const s of sess) {
       const ps = probeStats[s.config.id];
       if (!ps) continue;
-      pcaAcc.V.push(ps.V.avg); pcaAcc.V_max.push(ps.V.max);
-      pcaAcc.A.push(ps.A.avg); pcaAcc.F.push(ps.F.avg); pcaAcc.P.push(ps.P.avg);
+      pcaAcc.V.push(ps.V.avg); pcaAcc.V_min.push(ps.V.min);
+      pcaAcc.A.push(ps.A.avg); pcaAcc.A_max.push(ps.A.max);
+      pcaAcc.F.push(ps.F.avg); pcaAcc.F_max.push(ps.F.max);
+      pcaAcc.P.push(ps.P.avg); pcaAcc.P_min.push(ps.P.min);
     }
     const avg = arr => arr.length > 0 ? arr.reduce((a, b) => a + b, 0) / arr.length : null;
-    row._pca_V_avg = avg(pcaAcc.V); row._pca_V_max = avg(pcaAcc.V_max);
-    row._pca_A_avg = avg(pcaAcc.A); row._pca_F_avg = avg(pcaAcc.F); row._pca_P_avg = avg(pcaAcc.P);
+    row._pca_V_avg = avg(pcaAcc.V); row._pca_V_min = avg(pcaAcc.V_min);
+    row._pca_A_avg = avg(pcaAcc.A); row._pca_A_max = avg(pcaAcc.A_max);
+    row._pca_F_avg = avg(pcaAcc.F); row._pca_F_max = avg(pcaAcc.F_max);
+    row._pca_P_avg = avg(pcaAcc.P); row._pca_P_min = avg(pcaAcc.P_min);
     return row;
   });
 
