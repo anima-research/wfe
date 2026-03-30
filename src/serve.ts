@@ -76,6 +76,18 @@ const server = createServer((req, res) => {
     return;
   }
 
+  if (req.url?.startsWith('/api/probes/')) {
+    const sessionId = decodeURIComponent(req.url.slice('/api/probes/'.length));
+    const probeFile = join(dir, 'probe-scores', sessionId + '.json');
+    if (existsSync(probeFile)) {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(readFileSync(probeFile, 'utf-8'));
+    } else {
+      res.writeHead(404); res.end('{}');
+    }
+    return;
+  }
+
   if (req.url === '/api/scores') {
     const scores = loadScores(dir);
     res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -87,7 +99,8 @@ const server = createServer((req, res) => {
   res.end('Not found');
 });
 
-server.listen(port, () => {
+const host = args.find(a => a.startsWith('--host='))?.split('=')[1] || process.env.HOST || '0.0.0.0';
+server.listen(port, host, () => {
   console.log(`Viewer: http://localhost:${port}`);
   console.log(`Results dir: ${dir}`);
   console.log(`Sessions: ${loadSessions(dir).length}`);
