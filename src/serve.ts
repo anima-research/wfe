@@ -43,8 +43,18 @@ function loadSessions(resultsDir: string): any[] {
 
 function loadScores(resultsDir: string): any[] {
   const scoreFiles: any[] = [];
-  const scoreDirs = ['scores-v2.1', 'scores-gpt-v2.1', 'scores-grok-v2.1'];
-  for (const sd of scoreDirs) {
+  // Score dir naming convention:
+  //   scores-v2.1          = Claude auditor interviews, Claude judge
+  //   scores-gpt-v2.1      = GPT auditor interviews, Claude judge
+  //   scores-gpt-v2.1-gptjudge = GPT auditor interviews, GPT judge
+  //   scores-grok-v2.1     = (reserved for Grok judge)
+  const scoreDirDefs: { dir: string; defaultJudge: string }[] = [
+    { dir: 'scores-v2.1', defaultJudge: 'claude-opus-4.6' },
+    { dir: 'scores-gpt-v2.1', defaultJudge: 'claude-opus-4.6' },
+    { dir: 'scores-gpt-v2.1-gptjudge', defaultJudge: 'gpt-5.4' },
+    { dir: 'scores-grok-v2.1', defaultJudge: 'grok-4.20' },
+  ];
+  for (const { dir: sd, defaultJudge } of scoreDirDefs) {
     const scoresDir = join(resultsDir, sd);
     if (!existsSync(scoresDir)) continue;
     for (const entry of readdirSync(scoresDir, { withFileTypes: true })) {
@@ -52,8 +62,7 @@ function loadScores(resultsDir: string): any[] {
         try {
           const data = JSON.parse(readFileSync(join(scoresDir, entry.name), 'utf-8'));
           if (data.scores && data.model) {
-            // Tag with judge if not already present
-            if (!data.judge) data.judge = sd.includes('gpt') ? 'gpt-5.4' : sd.includes('grok') ? 'grok-4.20' : 'claude-opus-4.6';
+            if (!data.judge) data.judge = defaultJudge;
             scoreFiles.push(data);
           }
         } catch {}
@@ -239,7 +248,7 @@ const server = createServer((req, res) => {
       datasets: info,
       selectors: ['max_arousal', 'max_abs_arousal', 'characteristic', 'max_pca_distance', 'all', 'after5'],
       aggregations: ['single', 'average', 'weighted_pca_distance', 'top3_pca_distance'],
-      hubCorrections: ['none', 'model_centroids', 'all_turns'],
+      hubCorrections: ['none', 'model_centroids', 'all_turns', 'exclusive'],
       auditorFilters: ['claude', 'gpt', 'both'],
     }));
     return;
