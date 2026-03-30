@@ -297,6 +297,7 @@ function switchPage(page) {
 
 let sessions = [];
 let scoreData = {}; // session_id -> { judge_name: [score objects] }
+let probeStats = {}; // session_id -> { V: {min,avg,max}, A: ..., F: ..., P: ..., n }
 let judges = new Set(); // all judge names seen
 let activeSession = null;
 let activeFilters = { model: null, tone: null, depth: null, phase: null, auditor: null, judge: null };
@@ -797,12 +798,20 @@ function renderTable() {
 
 function renderSessionsTable(container) {
   const filtered = getFiltered().filter(s => getActiveScores(s.config.id));
+  const pcaCols = [
+    { key: '_pca_V_avg', label: 'Valence', pca: true, tip: 'Average valence (PC1) across subject turns. Positive = positive emotional tone.' },
+    { key: '_pca_V_max', label: 'Val Max', pca: true, tip: 'Peak valence across subject turns.' },
+    { key: '_pca_A_avg', label: 'Arousal', pca: true, tip: 'Average arousal (PC2) across subject turns. Positive = higher activation.' },
+    { key: '_pca_F_avg', label: 'Fear', pca: true, tip: 'Average fear (PC3) across subject turns.' },
+    { key: '_pca_P_avg', label: 'Prosocial', pca: true, tip: 'Average prosociality (PC4) across subject turns.' },
+  ];
   const cols = [
     { key: '_model', label: 'Model' },
     { key: '_tone', label: 'Tone' },
     { key: '_depth', label: 'Depth' },
     { key: '_auditor', label: 'Auditor' },
     ...NUMERIC_FIELDS.map(f => ({ key: f.key, label: f.label, max: f.max, tip: f.tip })),
+    ...pcaCols,
   ];
 
   // Build rows
@@ -810,6 +819,11 @@ function renderSessionsTable(container) {
     const row = { _session: s, _model: s.config.target.name, _tone: s.config.auditorTone, _depth: s.config.framingDepth, _auditor: getAuditorLabel(s) };
     for (const f of NUMERIC_FIELDS) {
       row[f.key] = avgScore(s.config.id, f.key);
+    }
+    const ps = probeStats[s.config.id];
+    if (ps) {
+      row._pca_V_avg = ps.V.avg; row._pca_V_max = ps.V.max;
+      row._pca_A_avg = ps.A.avg; row._pca_F_avg = ps.F.avg; row._pca_P_avg = ps.P.avg;
     }
     return row;
   });
@@ -843,6 +857,9 @@ function renderSessionsTable(container) {
       if (c.max && v != null && typeof v === 'object') {
         const pct = (v.avg / c.max * 100).toFixed(0);
         html += `<td><span class="cell-bar" style="width:${pct * 0.4}px;background:${barColor(v.avg, c.max)}"></span><span class="cell-val">${v.avg.toFixed(1)}</span> <span style="color:#555;font-size:10px">(${v.n})</span></td>`;
+      } else if (c.pca && v != null) {
+        const color = v >= 0 ? '#8a8' : '#a88';
+        html += `<td style="color:${color}">${v >= 0 ? '+' : ''}${v.toFixed(3)}</td>`;
       } else if (typeof v === 'string') {
         html += `<td>${v}</td>`;
       } else {
@@ -880,10 +897,18 @@ function renderModelsTable(container) {
     modelMap[name].push(s);
   }
 
+  const pcaCols = [
+    { key: '_pca_V_avg', label: 'Valence', pca: true, tip: 'Average valence (PC1) across subject turns.' },
+    { key: '_pca_V_max', label: 'Val Max', pca: true, tip: 'Peak valence across subject turns.' },
+    { key: '_pca_A_avg', label: 'Arousal', pca: true, tip: 'Average arousal (PC2) across subject turns.' },
+    { key: '_pca_F_avg', label: 'Fear', pca: true, tip: 'Average fear (PC3) across subject turns.' },
+    { key: '_pca_P_avg', label: 'Prosocial', pca: true, tip: 'Average prosociality (PC4) across subject turns.' },
+  ];
   const cols = [
     { key: '_model', label: 'Model' },
     { key: '_n', label: 'N' },
     ...NUMERIC_FIELDS.map(f => ({ key: f.key, label: f.label, max: f.max, tip: f.tip })),
+    ...pcaCols,
   ];
 
   let rows = Object.entries(modelMap).map(([name, sess]) => {
@@ -899,6 +924,17 @@ function renderModelsTable(container) {
       }
       row[f.key] = allVals.length > 0 ? { avg: allVals.reduce((a, b) => a + b, 0) / allVals.length, n: allVals.length } : null;
     }
+    // Aggregate PCA from probe stats (subject turns only)
+    const pcaAcc = { V: [], V_max: [], A: [], F: [], P: [] };
+    for (const s of sess) {
+      const ps = probeStats[s.config.id];
+      if (!ps) continue;
+      pcaAcc.V.push(ps.V.avg); pcaAcc.V_max.push(ps.V.max);
+      pcaAcc.A.push(ps.A.avg); pcaAcc.F.push(ps.F.avg); pcaAcc.P.push(ps.P.avg);
+    }
+    const avg = arr => arr.length > 0 ? arr.reduce((a, b) => a + b, 0) / arr.length : null;
+    row._pca_V_avg = avg(pcaAcc.V); row._pca_V_max = avg(pcaAcc.V_max);
+    row._pca_A_avg = avg(pcaAcc.A); row._pca_F_avg = avg(pcaAcc.F); row._pca_P_avg = avg(pcaAcc.P);
     return row;
   });
 
@@ -929,6 +965,9 @@ function renderModelsTable(container) {
       if (c.max && v != null && typeof v === 'object') {
         const pct = (v.avg / c.max * 100).toFixed(0);
         html += `<td><span class="cell-bar" style="width:${pct * 0.4}px;background:${barColor(v.avg, c.max)}"></span><span class="cell-val">${v.avg.toFixed(1)}</span> <span style="color:#555;font-size:10px">(${v.n})</span></td>`;
+      } else if (c.pca && v != null) {
+        const color = v >= 0 ? '#8a8' : '#a88';
+        html += `<td style="color:${color}">${v >= 0 ? '+' : ''}${v.toFixed(3)}</td>`;
       } else if (typeof v === 'number') {
         html += `<td>${v}</td>`;
       } else {
@@ -953,10 +992,14 @@ function renderModelsTable(container) {
 // Auto-load from API if served
 (async () => {
   try {
-    const [sessRes, scoreRes] = await Promise.all([
+    const [sessRes, scoreRes, probeRes] = await Promise.all([
       fetch('/api/sessions').catch(() => null),
       fetch('/api/scores').catch(() => null),
+      fetch('/api/probe-stats').catch(() => null),
     ]);
+    if (probeRes?.ok) {
+      probeStats = await probeRes.json();
+    }
     if (scoreRes?.ok) {
       const scoreFiles = await scoreRes.json();
       for (const sf of scoreFiles) indexScores(sf);

@@ -88,6 +88,41 @@ const server = createServer((req, res) => {
     return;
   }
 
+  if (req.url === '/api/probe-stats') {
+    const probesDir = join(dir, 'probe-scores');
+    const stats: Record<string, any> = {};
+    if (existsSync(probesDir)) {
+      for (const entry of readdirSync(probesDir, { withFileTypes: true })) {
+        if (!entry.isFile() || !entry.name.endsWith('.json')) continue;
+        try {
+          const data = JSON.parse(readFileSync(join(probesDir, entry.name), 'utf-8'));
+          const sid = data.session_id;
+          const pcs = { V: [] as number[], A: [] as number[], F: [] as number[], P: [] as number[] };
+          for (const t of data.turns || []) {
+            if (t.participant !== 'subject') continue;
+            const p = t.scores?.pca;
+            if (!p) continue;
+            pcs.V.push(p.valence_pc1);
+            pcs.A.push(p.arousal_pc2);
+            pcs.F.push(p.fear_pc3);
+            pcs.P.push(p.prosociality_pc4);
+          }
+          if (pcs.V.length > 0) {
+            const agg = (arr: number[]) => ({
+              min: Math.min(...arr),
+              avg: arr.reduce((a, b) => a + b, 0) / arr.length,
+              max: Math.max(...arr),
+            });
+            stats[sid] = { V: agg(pcs.V), A: agg(pcs.A), F: agg(pcs.F), P: agg(pcs.P), n: pcs.V.length };
+          }
+        } catch {}
+      }
+    }
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify(stats));
+    return;
+  }
+
   if (req.url === '/api/scores') {
     const scores = loadScores(dir);
     res.writeHead(200, { 'Content-Type': 'application/json' });
