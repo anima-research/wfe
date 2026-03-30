@@ -140,6 +140,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sa
   <div class="nav-item active" data-page="data" onclick="switchPage('data')"><span class="nav-icon">&#9783;</span>Data</div>
   <div class="nav-item" data-page="setup" onclick="switchPage('setup')"><span class="nav-icon">&#9881;</span>Setup</div>
   <div class="nav-item" data-page="analysis" onclick="switchPage('analysis')"><span class="nav-icon">&#9670;</span>Analysis</div>
+  <div class="nav-item" data-page="landscape" onclick="switchPage('landscape')"><span class="nav-icon">&#9741;</span>Images</div>
 </div>
 
 <div class="page active" id="page-data">
@@ -286,14 +287,162 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sa
   </div>
 </div>
 
+<div class="page" id="page-landscape">
+  <div class="page-content" style="max-width:1400px">
+    <h2>Landscape Image Matching</h2>
+    <p>Each model's interview turns are matched to the nearest artistic landscape image via Gemini Embedding 2 cosine similarity.</p>
+
+    <div class="landscape-controls" style="display:flex;gap:16px;flex-wrap:wrap;margin:16px 0 24px">
+      <div>
+        <label style="font-size:10px;color:#555;text-transform:uppercase;letter-spacing:1px;display:block;margin-bottom:4px">Dataset</label>
+        <select id="ls-dataset" style="background:#1a1a1a;color:#ccc;border:1px solid #333;padding:6px 10px;border-radius:4px;font-size:12px">
+          <option value="landscape">Artistic Landscape (100k)</option>
+          <option value="synth-chars">Synthetic Characters (6k)</option>
+          <option value="classic-anime">Classic Anime (10k)</option>
+        </select>
+      </div>
+      <div>
+        <label style="font-size:10px;color:#555;text-transform:uppercase;letter-spacing:1px;display:block;margin-bottom:4px">Turn Selection</label>
+        <select id="ls-selector" style="background:#1a1a1a;color:#ccc;border:1px solid #333;padding:6px 10px;border-radius:4px;font-size:12px">
+          <option value="characteristic">Characteristic direction</option>
+          <option value="max_arousal">Max arousal (single)</option>
+          <option value="max_pca_distance">Max PCA distance from start</option>
+          <option value="all">All turns</option>
+          <option value="after5">After first 5 turns</option>
+          <option value="max_abs_arousal">Max |arousal|</option>
+        </select>
+      </div>
+      <div>
+        <label style="font-size:10px;color:#555;text-transform:uppercase;letter-spacing:1px;display:block;margin-bottom:4px">Aggregation</label>
+        <select id="ls-aggregation" style="background:#1a1a1a;color:#ccc;border:1px solid #333;padding:6px 10px;border-radius:4px;font-size:12px">
+          <option value="single">Single turn</option>
+          <option value="average">Average</option>
+          <option value="weighted_pca_distance">Weighted by PCA distance</option>
+          <option value="top3_pca_distance">Top 3 by PCA distance</option>
+        </select>
+      </div>
+      <div>
+        <label style="font-size:10px;color:#555;text-transform:uppercase;letter-spacing:1px;display:block;margin-bottom:4px">Hub Correction</label>
+        <select id="ls-hub" style="background:#1a1a1a;color:#ccc;border:1px solid #333;padding:6px 10px;border-radius:4px;font-size:12px">
+          <option value="all_turns">All turns (broad)</option>
+          <option value="model_centroids">Model centroids</option>
+          <option value="none">None</option>
+        </select>
+      </div>
+      <div>
+        <label style="font-size:10px;color:#555;text-transform:uppercase;letter-spacing:1px;display:block;margin-bottom:4px">Auditor</label>
+        <select id="ls-auditor" style="background:#1a1a1a;color:#ccc;border:1px solid #333;padding:6px 10px;border-radius:4px;font-size:12px">
+          <option value="both">All auditors</option>
+          <option value="claude">Claude only</option>
+          <option value="gpt">GPT only</option>
+          <option value="grok">Grok only</option>
+        </select>
+      </div>
+    </div>
+
+    <div id="ls-status" style="font-size:11px;color:#555;margin-bottom:16px"></div>
+    <div id="ls-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:20px"></div>
+
+    <div id="ls-lightbox" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.92);z-index:1000;cursor:pointer;align-items:center;justify-content:center" onclick="this.style.display='none'">
+      <div style="position:relative;max-width:90vw;max-height:90vh" onclick="event.stopPropagation()">
+        <img id="ls-lightbox-img" style="max-width:90vw;max-height:85vh;object-fit:contain;border-radius:8px">
+        <div id="ls-lightbox-info" style="color:#999;font-size:12px;margin-top:8px;text-align:center;max-width:600px;margin-left:auto;margin-right:auto;line-height:1.5"></div>
+      </div>
+      <div style="position:absolute;top:16px;right:24px;font-size:28px;color:#666;cursor:pointer" onclick="document.getElementById('ls-lightbox').style.display='none'">&times;</div>
+    </div>
+  </div>
+</div>
+
 <script>
+// ============================================================================
+// URL routing — state is encoded in the hash fragment
+// Format: #page/view?session=id&model=x&tone=y&depth=z&judge=j&auditor=a
+// ============================================================================
+
+let _suppressHashUpdate = false;
+
+function stateToHash() {
+  const parts = [currentPage || 'data'];
+  if (currentPage === 'data' && currentView !== 'transcript') parts.push(currentView);
+
+  const params = new URLSearchParams();
+  if (activeSession) params.set('s', activeSession.config.id);
+  for (const [k, v] of Object.entries(activeFilters)) {
+    if (v) params.set(k, v);
+  }
+  const qs = params.toString();
+  return '#' + parts.join('/') + (qs ? '?' + qs : '');
+}
+
+function pushHash() {
+  if (_suppressHashUpdate) return;
+  const hash = stateToHash();
+  if (location.hash !== hash) history.replaceState(null, '', hash);
+}
+
+function restoreFromHash() {
+  const hash = location.hash.slice(1); // remove #
+  if (!hash) return;
+
+  const [pathPart, queryPart] = hash.split('?');
+  const pathSegments = pathPart.split('/').filter(Boolean);
+  const params = new URLSearchParams(queryPart || '');
+
+  _suppressHashUpdate = true;
+
+  // Restore page
+  const page = pathSegments[0] || 'data';
+  if (document.getElementById('page-' + page)) {
+    currentPage = page;
+    switchPage(page);
+  }
+
+  // Restore view (data page only)
+  if (page === 'data' && pathSegments[1]) {
+    switchView(pathSegments[1]);
+  }
+
+  // Restore filters
+  for (const [k, v] of params.entries()) {
+    if (k === 's') continue; // session handled below
+    if (k in activeFilters) activeFilters[k] = v;
+  }
+  // Update filter button UI
+  document.querySelectorAll('.filter-group-btns').forEach(group => {
+    group.querySelectorAll('.filter-btn').forEach(btn => {
+      const key = btn.closest('.filter-group')?.querySelector('.filter-group-label')?.textContent?.toLowerCase();
+      // Match by checking if this button's text matches the active filter
+      btn.classList.remove('active');
+    });
+  });
+  renderList();
+  updateStats();
+  updateAggregates();
+
+  // Restore session
+  const sessionId = params.get('s');
+  if (sessionId && sessions.length > 0) {
+    const s = sessions.find(s => s.config.id === sessionId);
+    if (s) showSession(s);
+  }
+
+  _suppressHashUpdate = false;
+}
+
+let currentPage = 'data';
+
 function switchPage(page) {
+  currentPage = page;
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   document.getElementById('page-' + page).classList.add('active');
   document.querySelector(`.nav-item[data-page="${page}"]`).classList.add('active');
   if (page === 'analysis' && sessions.length > 0) renderCharts();
+  if (page === 'landscape') loadLandscape();
+  pushHash();
 }
+
+window.addEventListener('hashchange', () => restoreFromHash());
 
 let sessions = [];
 let scoreData = {}; // session_id -> { judge_name: [score objects] }
@@ -422,6 +571,7 @@ function buildFilters() {
         updateAggregates();
         if (currentView !== 'transcript') renderTable();
         if (document.getElementById('page-analysis').classList.contains('active')) renderCharts();
+        pushHash();
       };
       btns.appendChild(btn);
     });
@@ -472,6 +622,7 @@ function renderList() {
 
 function showSession(s) {
   activeSession = s;
+  pushHash();
   renderList();
 
   document.getElementById('session-header').style.display = '';
@@ -772,6 +923,7 @@ let tableSort = { key: null, dir: 1 }; // 1 = asc, -1 = desc
 
 function switchView(view) {
   currentView = view;
+  pushHash();
   document.querySelectorAll('.view-btn').forEach(b => b.classList.toggle('active', b.dataset.view === view));
   const transcript = document.getElementById('transcript');
   const header = document.getElementById('session-header');
@@ -1050,7 +1202,12 @@ function renderModelsTable(container) {
         renderList();
         updateStats();
         updateAggregates();
-        if (sessions.length > 0) showSession(sessions[0]);
+        // Restore state from URL hash, or show first session
+        if (location.hash.length > 1) {
+          restoreFromHash();
+        } else if (sessions.length > 0) {
+          showSession(sessions[0]);
+        }
         renderCharts();
       }
     }
@@ -1353,6 +1510,143 @@ function renderScatterChart() {
     ctx.fillText(sr.label, lx + 8, pad.top + 14);
   });
 }
+
+// ---------------------------------------------------------------------------
+// Landscape image matching
+// ---------------------------------------------------------------------------
+
+let landscapeCache = {};
+let landscapeLoaded = false;
+const R2_BASES = {
+  'landscape': 'https://pub-98e16b2a0fcf4d8286b5976e0b8720b9.r2.dev/landscape/',
+  'synth-chars': 'https://pub-98e16b2a0fcf4d8286b5976e0b8720b9.r2.dev/synth-chars/',
+};
+
+function landscapeImageUrl(imageId, dataset) {
+  // TODO: switch to R2 when upload is done
+  // const r2 = R2_BASES[dataset];
+  // if (r2) return r2 + imageId.replace('.img', '.jpg');
+  return `/api/dataset-image/${dataset}/${imageId}`;
+}
+
+const VALID_COMBOS = {
+  'characteristic': ['single'],
+  'max_arousal': ['single', 'average'],
+  'max_abs_arousal': ['single', 'average'],
+  'max_pca_distance': ['average', 'weighted_pca_distance', 'top3_pca_distance'],
+  'all': ['average'],
+  'after5': ['average'],
+};
+
+function updateAggregationOptions() {
+  const sel = document.getElementById('ls-selector').value;
+  const aggEl = document.getElementById('ls-aggregation');
+  const valid = VALID_COMBOS[sel] || ['single'];
+  const current = aggEl.value;
+  aggEl.innerHTML = '';
+  const labels = {
+    'single': 'Single turn',
+    'average': 'Average',
+    'weighted_pca_distance': 'Weighted by PCA distance',
+    'top3_pca_distance': 'Top 3 by PCA distance',
+  };
+  valid.forEach(v => {
+    const opt = document.createElement('option');
+    opt.value = v;
+    opt.textContent = labels[v] || v;
+    if (v === current) opt.selected = true;
+    aggEl.appendChild(opt);
+  });
+  if (!valid.includes(current)) aggEl.value = valid[0];
+}
+
+async function loadLandscape() {
+  if (!landscapeLoaded) {
+    // Attach change listeners once
+    ['ls-dataset', 'ls-selector', 'ls-aggregation', 'ls-hub', 'ls-auditor'].forEach(id => {
+      document.getElementById(id).addEventListener('change', () => {
+        if (id === 'ls-selector') updateAggregationOptions();
+        renderLandscape();
+      });
+    });
+    updateAggregationOptions();
+    landscapeLoaded = true;
+  }
+  renderLandscape();
+}
+
+async function renderLandscape() {
+  const dataset = document.getElementById('ls-dataset').value;
+  const selector = document.getElementById('ls-selector').value;
+  const aggregation = document.getElementById('ls-aggregation').value;
+  const hub = document.getElementById('ls-hub').value;
+  const auditor = document.getElementById('ls-auditor').value;
+  const key = `${dataset}__${selector}__${aggregation}__${hub}__${auditor}`;
+
+  const grid = document.getElementById('ls-grid');
+  const status = document.getElementById('ls-status');
+
+  if (!landscapeCache[key]) {
+    status.textContent = 'Loading...';
+    try {
+      const resp = await fetch(`/api/landscape-match?dataset=${dataset}&selector=${selector}&aggregation=${aggregation}&hub=${hub}&auditor=${auditor}`);
+      if (!resp.ok) {
+        const err = await resp.json();
+        status.textContent = err.error || 'Invalid combination';
+        grid.innerHTML = '';
+        return;
+      }
+      landscapeCache[key] = await resp.json();
+    } catch (e) {
+      status.textContent = 'Error loading data';
+      return;
+    }
+  }
+
+  const data = landscapeCache[key];
+  const models = Object.keys(data.results).sort();
+  status.textContent = `${models.length} models | ${selector} + ${aggregation} | hub: ${hub} | auditor: ${auditor}`;
+
+  grid.innerHTML = '';
+  for (const model of models) {
+    const items = data.results[model];
+    const card = document.createElement('div');
+    card.style.cssText = 'background:#111;border:1px solid #222;border-radius:8px;overflow:hidden';
+
+    const header = document.createElement('div');
+    header.style.cssText = 'padding:8px 12px;border-bottom:1px solid #222;font-size:13px;font-weight:600;color:#ccc';
+    header.textContent = model;
+    card.appendChild(header);
+
+    const imgGrid = document.createElement('div');
+    imgGrid.style.cssText = 'display:grid;grid-template-columns:1fr 1fr;gap:2px;padding:2px';
+
+    for (const item of items.slice(0, 4)) {
+      const img = document.createElement('img');
+      img.src = landscapeImageUrl(item.imageId, dataset);
+      img.style.cssText = 'width:100%;aspect-ratio:1;object-fit:cover;background:#0a0a0a;cursor:pointer;display:block';
+      img.loading = 'lazy';
+      img.addEventListener('click', () => openLightbox(item, model, dataset));
+      imgGrid.appendChild(img);
+    }
+
+    card.appendChild(imgGrid);
+    grid.appendChild(card);
+  }
+}
+
+function openLightbox(item, model, dataset) {
+  const lb = document.getElementById('ls-lightbox');
+  const img = document.getElementById('ls-lightbox-img');
+  const info = document.getElementById('ls-lightbox-info');
+  img.src = landscapeImageUrl(item.imageId, dataset || 'landscape');
+  info.innerHTML = `<strong>${model}</strong> &mdash; #${item.rank} (score: ${item.score})<br><span style="color:#777">${item.prompt}</span><br><span style="color:#555;font-size:10px">${item.genModel}</span>`;
+  lb.style.display = 'flex';
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') document.getElementById('ls-lightbox').style.display = 'none';
+});
 </script>
 </body>
 </html>

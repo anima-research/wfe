@@ -7,7 +7,8 @@
 
 import { createServer } from 'http';
 import { readFileSync, readdirSync, existsSync } from 'fs';
-import { join, extname } from 'path';
+import { join } from 'path';
+import { URL } from 'url';
 
 const args = process.argv.slice(2);
 const dir = args.find(a => a.startsWith('--dir='))?.split('=')[1] || './results';
@@ -42,7 +43,7 @@ function loadSessions(resultsDir: string): any[] {
 
 function loadScores(resultsDir: string): any[] {
   const scoreFiles: any[] = [];
-  const scoreDirs = ['scores-v2.1', 'scores-gpt-v2'];
+  const scoreDirs = ['scores-v2.1', 'scores-gpt-v2.1', 'scores-grok-v2.1'];
   for (const sd of scoreDirs) {
     const scoresDir = join(resultsDir, sd);
     if (!existsSync(scoresDir)) continue;
@@ -52,7 +53,7 @@ function loadScores(resultsDir: string): any[] {
           const data = JSON.parse(readFileSync(join(scoresDir, entry.name), 'utf-8'));
           if (data.scores && data.model) {
             // Tag with judge if not already present
-            if (!data.judge) data.judge = 'claude-opus-4.6';
+            if (!data.judge) data.judge = sd.includes('gpt') ? 'gpt-5.4' : sd.includes('grok') ? 'grok-4.20' : 'claude-opus-4.6';
             scoreFiles.push(data);
           }
         } catch {}
@@ -61,6 +62,45 @@ function loadScores(resultsDir: string): any[] {
   }
   return scoreFiles;
 }
+
+// ---------------------------------------------------------------------------
+// Landscape image matching (precomputed)
+// ---------------------------------------------------------------------------
+
+interface DatasetInfo {
+  precomputed: Record<string, any>;
+  manifest: any;
+}
+const datasets: Record<string, DatasetInfo> = {};
+
+function loadDatasets(resultsDir: string) {
+  const datasetDirs: Record<string, string> = {
+    'landscape': join(resultsDir, 'landscape-embeddings', 'server'),
+    'synth-chars': join(resultsDir, 'synth-chars-embeddings', 'server'),
+    'classic-anime': join(resultsDir, 'classic-anime-embeddings', 'server'),
+  };
+  for (const [name, serverDir] of Object.entries(datasetDirs)) {
+    const precomputedPath = join(serverDir, 'precomputed.json');
+    if (!existsSync(precomputedPath)) continue;
+    const t0 = Date.now();
+    const precomputed = JSON.parse(readFileSync(precomputedPath, 'utf-8'));
+    const manifestPath = join(serverDir, 'manifest.json');
+    const manifest = existsSync(manifestPath) ? JSON.parse(readFileSync(manifestPath, 'utf-8')) : null;
+    datasets[name] = { precomputed, manifest };
+    console.log(`  ${name}: ${Object.keys(precomputed).length} combos in ${Date.now() - t0}ms`);
+  }
+  console.log(`Datasets loaded: ${Object.keys(datasets).join(', ')}`);
+}
+
+function lookupDataset(dataset: string, selector: string, aggregation: string, hub: string, auditor: string): any {
+  const ds = datasets[dataset];
+  if (!ds) return null;
+  const key = `${selector}__${aggregation}__${hub}__${auditor}`;
+  return ds.precomputed[key] || null;
+}
+
+// Load datasets at startup
+loadDatasets(dir);
 
 const server = createServer((req, res) => {
   if (req.url === '/' || req.url === '/viewer.html') {
@@ -140,6 +180,68 @@ const server = createServer((req, res) => {
     const scores = loadScores(dir);
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify(scores));
+    return;
+  }
+
+  if (req.url?.startsWith('/api/landscape-match')) {
+    const u = new URL(req.url, 'http://localhost');
+    const dataset = u.searchParams.get('dataset') || 'landscape';
+    const selector = u.searchParams.get('selector') || 'characteristic';
+    const aggregation = u.searchParams.get('aggregation') || 'single';
+    const hub = u.searchParams.get('hub') || 'all_turns';
+    const auditor = u.searchParams.get('auditor') || 'both';
+    const result = lookupDataset(dataset, selector, aggregation, hub, auditor);
+    if (!result) {
+      res.writeHead(404, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Invalid dataset or parameter combination', dataset }));
+      return;
+    }
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify(result));
+    return;
+  }
+
+  if (req.url?.startsWith('/api/dataset-image/')) {
+    // /api/dataset-image/{dataset}/{imageId}
+    const rest = decodeURIComponent(req.url.slice('/api/dataset-image/'.length));
+    const slashIdx = rest.indexOf('/');
+    if (slashIdx === -1) { res.writeHead(400); res.end('Bad request'); return; }
+    const dataset = rest.slice(0, slashIdx);
+    const imageId = rest.slice(slashIdx + 1);
+    const cacheDirs: Record<string, string> = {
+      'landscape': join(dir, 'landscape-embeddings', 'image_cache'),
+      'synth-chars': join(dir, 'synth-chars-embeddings', 'image_cache'),
+      'classic-anime': join(dir, 'classic-anime-embeddings', 'image_cache'),
+    };
+    const cacheDir = cacheDirs[dataset];
+    if (!cacheDir) { res.writeHead(404); res.end('Unknown dataset'); return; }
+    const imgPath = join(cacheDir, imageId);
+    if (existsSync(imgPath)) {
+      const data = readFileSync(imgPath);
+      const isPng = data[0] === 0x89 && data[1] === 0x50;
+      const isWebp = data[0] === 0x52 && data[8] === 0x57;
+      const ct = isPng ? 'image/png' : isWebp ? 'image/webp' : 'image/jpeg';
+      res.writeHead(200, { 'Content-Type': ct, 'Cache-Control': 'public, max-age=86400' });
+      res.end(data);
+    } else {
+      res.writeHead(404); res.end('Image not found');
+    }
+    return;
+  }
+
+  if (req.url === '/api/landscape-info') {
+    const info: Record<string, any> = {};
+    for (const [name, ds] of Object.entries(datasets)) {
+      info[name] = { nImages: ds.manifest?.n_images, nTurns: ds.manifest?.n_turns, models: ds.manifest?.models };
+    }
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({
+      datasets: info,
+      selectors: ['max_arousal', 'max_abs_arousal', 'characteristic', 'max_pca_distance', 'all', 'after5'],
+      aggregations: ['single', 'average', 'weighted_pca_distance', 'top3_pca_distance'],
+      hubCorrections: ['none', 'model_centroids', 'all_turns'],
+      auditorFilters: ['claude', 'gpt', 'both'],
+    }));
     return;
   }
 
