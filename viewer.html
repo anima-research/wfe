@@ -69,9 +69,13 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sa
 .turn-subject .turn-body { border-left-color: #4a3a2a; }
 
 /* Probe tags */
-.probe-bar { margin-top: 6px; display: flex; flex-wrap: wrap; gap: 3px; }
+.probe-bar { margin-top: 6px; display: flex; flex-wrap: wrap; gap: 3px; align-items: center; }
 .probe-tag { font-size: 9px; padding: 1px 6px; border-radius: 3px; color: #bbb; background: #1a1a2a; border: 1px solid #2a2a3a; white-space: nowrap; }
 .probe-tag .probe-score { color: #667; margin-left: 3px; }
+.pca-tags { display: inline-flex; gap: 3px; margin-left: 6px; padding-left: 6px; border-left: 1px solid #252525; }
+.pca-tag { font-size: 9px; padding: 1px 5px; border-radius: 3px; white-space: nowrap; }
+.pca-label { color: #777; }
+.pca-val { font-weight: 600; margin-left: 2px; }
 
 /* Phase separator */
 .phase-separator { text-align: center; padding: 16px 0; margin: 24px 0; border-top: 1px solid #333; border-bottom: 1px solid #333; }
@@ -504,9 +508,22 @@ function showSession(s) {
       const bar = document.createElement('div');
       bar.className = 'probe-bar';
       const top5 = pt.scores.top10.slice(0, 5);
-      bar.innerHTML = top5.map(e =>
+      let html = top5.map(e =>
         `<span class="probe-tag">${e.emotion}<span class="probe-score">${(e.score * 100).toFixed(1)}%</span></span>`
       ).join('');
+      if (pt.scores.pca) {
+        const pca = pt.scores.pca;
+        const pcaItems = [
+          { label: 'V', val: pca.valence_pc1, pos: '#4a7a4a', neg: '#7a4a4a' },
+          { label: 'A', val: pca.arousal_pc2, pos: '#7a6a3a', neg: '#3a4a6a' },
+          { label: 'F', val: pca.fear_pc3, pos: '#7a4a4a', neg: '#4a6a5a' },
+          { label: 'P', val: pca.prosociality_pc4, pos: '#4a5a7a', neg: '#6a5a4a' },
+        ];
+        html += '<span class="pca-tags">' + pcaItems.map(p =>
+          `<span class="pca-tag" style="background:${p.val >= 0 ? p.pos : p.neg}"><span class="pca-label">${p.label}</span><span class="pca-val">${p.val >= 0 ? '+' : ''}${p.val.toFixed(2)}</span></span>`
+        ).join('') + '</span>';
+      }
+      bar.innerHTML = html;
       turnEl.querySelector('.turn-body')?.after(bar);
     }
   }).catch(() => {});
