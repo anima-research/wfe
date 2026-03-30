@@ -22,7 +22,7 @@ function loadSessions(resultsDir: string): any[] {
   // Recursively find all JSON files
   function walk(d: string) {
     for (const entry of readdirSync(d, { withFileTypes: true })) {
-      const skip = entry.name.includes('streaming-bug') || entry.name.startsWith('scores') || entry.name.startsWith('probe') || entry.name === 'test-run' || entry.name === 'anchors' || entry.name === 'quotes' || entry.name === 'batch-45-46' || entry.name === 'opus3-compassionate';
+      const skip = entry.name.includes('streaming-bug') || entry.name.startsWith('scores') || entry.name.startsWith('probe') || entry.name.startsWith('gpt-auditor-v') || entry.name === 'dropout-backup' || entry.name === 'test-run' || entry.name === 'anchors' || entry.name === 'quotes' || entry.name === 'batch-45-46' || entry.name === 'opus3-compassionate' || entry.name.startsWith('embeddings') || entry.name.endsWith('-embeddings');
       if (entry.isDirectory() && !skip) {
         walk(join(d, entry.name));
       } else if (entry.name.endsWith('.json') && entry.name !== 'configs.json' && entry.name !== 'all_results.json' && entry.name !== 'analysis.json') {
