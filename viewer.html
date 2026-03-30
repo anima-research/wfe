@@ -361,6 +361,8 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sa
 
 let _suppressHashUpdate = false;
 
+const LS_PARAMS = ['ls-dataset', 'ls-selector', 'ls-aggregation', 'ls-hub', 'ls-auditor'];
+
 function stateToHash() {
   const parts = [currentPage || 'data'];
   if (currentPage === 'data' && currentView !== 'transcript') parts.push(currentView);
@@ -369,6 +371,13 @@ function stateToHash() {
   if (activeSession) params.set('s', activeSession.config.id);
   for (const [k, v] of Object.entries(activeFilters)) {
     if (v) params.set(k, v);
+  }
+  // Landscape dropdowns
+  if (currentPage === 'landscape') {
+    for (const id of LS_PARAMS) {
+      const el = document.getElementById(id);
+      if (el) params.set(id, el.value);
+    }
   }
   const qs = params.toString();
   return '#' + parts.join('/') + (qs ? '?' + qs : '');
@@ -406,6 +415,12 @@ function restoreFromHash() {
   for (const [k, v] of params.entries()) {
     if (k === 's') continue; // session handled below
     if (k in activeFilters) activeFilters[k] = v;
+  }
+  // Restore landscape dropdowns
+  for (const id of LS_PARAMS) {
+    const val = params.get(id);
+    const el = document.getElementById(id);
+    if (val && el) el.value = val;
   }
   // Update filter button UI
   document.querySelectorAll('.filter-group-btns').forEach(group => {
@@ -1567,6 +1582,7 @@ async function loadLandscape() {
       document.getElementById(id).addEventListener('change', () => {
         if (id === 'ls-selector') updateAggregationOptions();
         renderLandscape();
+        pushHash();
       });
     });
     updateAggregationOptions();
