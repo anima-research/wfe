@@ -678,7 +678,7 @@ function makeTurn(t, turnIndex) {
   if (turnIndex != null) div.dataset.turnIndex = turnIndex;
 
   // Clean "Interviewer: " prefix from text if present
-  let text = t.text;
+  let text = t.text || '';
   if (text.startsWith('Interviewer: ')) text = text.slice('Interviewer: '.length);
 
   div.innerHTML = `
