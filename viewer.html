@@ -324,9 +324,10 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sa
       <div>
         <label style="font-size:10px;color:#555;text-transform:uppercase;letter-spacing:1px;display:block;margin-bottom:4px">Hub Correction</label>
         <select id="ls-hub" style="background:#1a1a1a;color:#ccc;border:1px solid #333;padding:6px 10px;border-radius:4px;font-size:12px">
+          <option value="exclusive">Exclusive assignment</option>
+          <option value="none">None</option>
           <option value="all_turns">All turns (broad)</option>
           <option value="model_centroids">Model centroids</option>
-          <option value="none">None</option>
         </select>
       </div>
       <div>
@@ -595,7 +596,7 @@ function buildFilters() {
   };
 
   const judgeList = [...judges].sort();
-  if (judgeList.length > 1) addGroup('Judge', judgeList, 'judge');
+  if (judgeList.length > 0) addGroup('Scorer', judgeList, 'judge');
   addGroup('Auditor', auditors, 'auditor');
   addGroup('Model', models, 'model');
   addGroup('Tone', tones, 'tone');
