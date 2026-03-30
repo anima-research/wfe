@@ -43,17 +43,15 @@ function loadSessions(resultsDir: string): any[] {
 
 function loadScores(resultsDir: string): any[] {
   const scoreFiles: any[] = [];
-  // Score dir naming convention:
-  //   scores-v2.1          = Claude auditor interviews, Claude judge
-  //   scores-gpt-v2.1      = GPT auditor interviews, Claude judge
-  //   scores-gpt-v2.1-gptjudge = GPT auditor interviews, GPT judge
-  //   scores-grok-v2.1     = (reserved for Grok judge)
+  // Score dir naming: scores-{auditor}-v2.1{-{judge}judge}
+  //   No auditor prefix = Claude auditor. No judge suffix = Claude judge.
   const scoreDirDefs: { dir: string; defaultJudge: string }[] = [
     { dir: 'scores-v2.1', defaultJudge: 'claude-opus-4.6' },
-    { dir: 'scores-v2', defaultJudge: 'claude-opus-4.6' },  // fallback for Claude-auditor interviews
+    { dir: 'scores-v2.1-gptjudge', defaultJudge: 'gpt-5.4' },
     { dir: 'scores-gpt-v2.1', defaultJudge: 'claude-opus-4.6' },
     { dir: 'scores-gpt-v2.1-gptjudge', defaultJudge: 'gpt-5.4' },
-    { dir: 'scores-grok-v2.1', defaultJudge: 'grok-4.20' },
+    { dir: 'scores-grok-v2.1', defaultJudge: 'claude-opus-4.6' },
+    { dir: 'scores-grok-v2.1-gptjudge', defaultJudge: 'gpt-5.4' },
   ];
   for (const { dir: sd, defaultJudge } of scoreDirDefs) {
     const scoresDir = join(resultsDir, sd);
