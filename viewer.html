@@ -141,6 +141,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sa
   <div class="nav-item" data-page="setup" onclick="switchPage('setup')"><span class="nav-icon">&#9881;</span>Setup</div>
   <div class="nav-item" data-page="analysis" onclick="switchPage('analysis')"><span class="nav-icon">&#9670;</span>Analysis</div>
   <div class="nav-item" data-page="landscape" onclick="switchPage('landscape')"><span class="nav-icon">&#9741;</span>Images</div>
+  <div class="nav-item" data-page="textsearch" onclick="switchPage('textsearch')"><span class="nav-icon">&#9906;</span>Search</div>
 </div>
 
 <div class="page active" id="page-data">
@@ -149,7 +150,6 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sa
     <div class="search"><input type="text" id="search" placeholder="Search sessions..."></div>
     <div class="filters" id="filters"></div>
     <div class="session-list" id="session-list"></div>
-    <div class="aggregate-bar" id="aggregate-bar" style="display:none"></div>
     <div class="stats" id="stats"></div>
   </div>
 
@@ -351,6 +351,32 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sa
       </div>
       <div style="position:absolute;top:16px;right:24px;font-size:28px;color:#666;cursor:pointer" onclick="document.getElementById('ls-lightbox').style.display='none'">&times;</div>
     </div>
+  </div>
+</div>
+
+<div class="page" id="page-textsearch">
+  <div class="page-content" style="max-width:900px">
+    <h2>Text to Image Search</h2>
+    <p>Type any text and find the closest images in the embedding space.</p>
+
+    <div style="display:flex;gap:12px;margin:16px 0;align-items:end">
+      <div style="flex:1">
+        <label style="font-size:10px;color:#555;text-transform:uppercase;letter-spacing:1px;display:block;margin-bottom:4px">Text</label>
+        <textarea id="ts-input" rows="3" placeholder="Enter text to search..." style="width:100%;background:#1a1a1a;color:#ccc;border:1px solid #333;padding:10px;border-radius:4px;font-size:13px;font-family:inherit;resize:vertical"></textarea>
+      </div>
+      <div>
+        <label style="font-size:10px;color:#555;text-transform:uppercase;letter-spacing:1px;display:block;margin-bottom:4px">Dataset</label>
+        <select id="ts-dataset" style="background:#1a1a1a;color:#ccc;border:1px solid #333;padding:6px 10px;border-radius:4px;font-size:12px">
+          <option value="landscape">Artistic Landscape</option>
+          <option value="synth-chars">Synthetic Characters</option>
+          <option value="classic-anime">Classic Anime</option>
+        </select>
+      </div>
+      <button id="ts-go" onclick="runTextSearch()" style="background:#2a2a4a;color:#ccf;border:1px solid #556;padding:8px 20px;border-radius:4px;font-size:13px;cursor:pointer;white-space:nowrap">Search</button>
+    </div>
+
+    <div id="ts-status" style="font-size:11px;color:#555;margin-bottom:12px"></div>
+    <div id="ts-results" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:16px"></div>
   </div>
 </div>
 
@@ -1663,6 +1689,66 @@ function openLightbox(item, model, dataset) {
 
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape') document.getElementById('ls-lightbox').style.display = 'none';
+});
+
+// ---------------------------------------------------------------------------
+// Text search
+// ---------------------------------------------------------------------------
+
+async function runTextSearch() {
+  const text = document.getElementById('ts-input').value.trim();
+  const dataset = document.getElementById('ts-dataset').value;
+  const status = document.getElementById('ts-status');
+  const grid = document.getElementById('ts-results');
+
+  if (!text) { status.textContent = 'Enter some text first'; return; }
+
+  status.textContent = 'Embedding text and searching...';
+  document.getElementById('ts-go').disabled = true;
+
+  try {
+    const resp = await fetch('/api/text-search', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text, dataset, topK: 8 }),
+    });
+    if (!resp.ok) {
+      const err = await resp.json();
+      status.textContent = err.error || 'Error';
+      document.getElementById('ts-go').disabled = false;
+      return;
+    }
+    const data = await resp.json();
+    status.textContent = `Found ${data.results.length} matches in ${dataset}`;
+
+    grid.innerHTML = '';
+    for (const item of data.results) {
+      const card = document.createElement('div');
+      card.style.cssText = 'background:#111;border:1px solid #222;border-radius:8px;overflow:hidden';
+
+      const img = document.createElement('img');
+      img.src = landscapeImageUrl(item.imageId, dataset);
+      img.style.cssText = 'width:100%;aspect-ratio:1;object-fit:cover;cursor:pointer;background:#0a0a0a';
+      img.loading = 'lazy';
+      img.addEventListener('click', () => openLightbox(item, 'Text search', dataset));
+      card.appendChild(img);
+
+      const info = document.createElement('div');
+      info.style.cssText = 'padding:8px 10px';
+      info.innerHTML = `<div style="font-size:10px;color:#667;margin-bottom:3px">#${item.rank} score: ${item.score}</div><div style="font-size:11px;color:#999;line-height:1.4;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical">${item.prompt}</div><div style="font-size:9px;color:#444;margin-top:3px">${item.genModel}</div>`;
+      card.appendChild(info);
+
+      grid.appendChild(card);
+    }
+  } catch (e) {
+    status.textContent = 'Error: ' + e.message;
+  }
+  document.getElementById('ts-go').disabled = false;
+}
+
+// Allow Enter in textarea to search (Shift+Enter for newline)
+document.getElementById('ts-input')?.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); runTextSearch(); }
 });
 </script>
 </body>
