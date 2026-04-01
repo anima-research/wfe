@@ -158,6 +158,12 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sa
       <button class="view-btn active" data-view="transcript" onclick="switchView('transcript')">Transcript</button>
       <button class="view-btn" data-view="sessions-table" onclick="switchView('sessions-table')">Sessions Table</button>
       <button class="view-btn" data-view="models-table" onclick="switchView('models-table')">Models Table</button>
+      <select id="group-by" style="display:none;margin-left:12px;background:#1a1a1a;color:#ccc;border:1px solid #333;padding:4px 8px;border-radius:4px;font-size:11px" onchange="renderTable();pushHash()">
+        <option value="">No grouping</option>
+        <option value="tone">Group by Tone</option>
+        <option value="depth">Group by Depth</option>
+        <option value="auditor">Group by Auditor</option>
+      </select>
     </div>
     <div class="session-header" id="session-header" style="display:none">
       <h2 id="header-title"></h2>
@@ -399,6 +405,9 @@ function stateToHash() {
   for (const [k, v] of Object.entries(activeFilters)) {
     if (v) params.set(k, v);
   }
+  // Group-by
+  const gb = document.getElementById('group-by')?.value;
+  if (gb) params.set('groupby', gb);
   // Landscape dropdowns
   if (currentPage === 'landscape') {
     for (const id of LS_PARAMS) {
@@ -443,6 +452,11 @@ function restoreFromHash() {
     if (k === 's') continue; // session handled below
     if (k in activeFilters) activeFilters[k] = v;
   }
+  // Restore group-by
+  const gbVal = params.get('groupby');
+  const gbEl = document.getElementById('group-by');
+  if (gbVal && gbEl) gbEl.value = gbVal;
+
   // Restore landscape dropdowns
   for (const id of LS_PARAMS) {
     const val = params.get(id);
@@ -949,6 +963,8 @@ function switchView(view) {
   const scoresPanel = document.getElementById('scores-panel');
   const tableView = document.getElementById('table-view');
 
+  document.getElementById('group-by').style.display = view === 'models-table' ? '' : 'none';
+
   if (view === 'transcript') {
     transcript.style.display = '';
     tableView.style.display = 'none';
@@ -1081,11 +1097,17 @@ function renderSessionsTable(container) {
 
 function renderModelsTable(container) {
   const filtered = getFiltered().filter(s => getActiveScores(s.config.id));
+  const groupBy = document.getElementById('group-by')?.value || '';
+
   const modelMap = {};
   for (const s of filtered) {
-    const name = s.config.target.name;
-    if (!modelMap[name]) modelMap[name] = [];
-    modelMap[name].push(s);
+    let groupVal = '';
+    if (groupBy === 'tone') groupVal = s.config.auditorTone;
+    else if (groupBy === 'depth') groupVal = s.config.framingDepth;
+    else if (groupBy === 'auditor') groupVal = getAuditorLabel(s);
+    const key = groupBy ? `${s.config.target.name} / ${groupVal}` : s.config.target.name;
+    if (!modelMap[key]) modelMap[key] = { sessions: [], model: s.config.target.name, group: groupVal };
+    modelMap[key].sessions.push(s);
   }
 
   const pcaCols = [
@@ -1102,13 +1124,14 @@ function renderModelsTable(container) {
   ];
   const cols = [
     { key: '_model', label: 'Model' },
+    ...(groupBy ? [{ key: '_group', label: groupBy.charAt(0).toUpperCase() + groupBy.slice(1) }] : []),
     { key: '_n', label: 'N' },
     ...NUMERIC_FIELDS.map(f => ({ key: f.key, label: f.label, max: f.max, tip: f.tip })),
     ...pcaCols,
   ];
 
-  let rows = Object.entries(modelMap).map(([name, sess]) => {
-    const row = { _model: name, _n: sess.length };
+  let rows = Object.entries(modelMap).map(([key, { sessions: sess, model, group }]) => {
+    const row = { _model: model, _group: group, _n: sess.length };
     for (const f of NUMERIC_FIELDS) {
       const allVals = [];
       for (const s of sess) {
