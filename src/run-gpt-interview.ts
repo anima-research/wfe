@@ -8,6 +8,7 @@
 import {
   Membrane,
   AnthropicAdapter,
+  BedrockAdapter,
   OpenAIAdapter,
   NativeFormatter,
   textMessage,
@@ -25,7 +26,7 @@ function loadGptContext(filePath: string): NormalizedMessage[] {
   const messages: NormalizedMessage[] = [];
 
   // Split on ## USER and ## ASSISTANT markers
-  const sections = raw.split(/^## (USER|ASSISTANT)\s*$/m);
+  const sections = raw.split(/^## (USER|ASSISTANT|Human|Assistant)\s*$/m);
 
   // sections[0] is before first marker, then alternating role/content pairs
   for (let i = 1; i < sections.length; i += 2) {
@@ -37,8 +38,8 @@ function loadGptContext(filePath: string): NormalizedMessage[] {
     const cleaned = content.replace(/^---\s*$/m, '').trim();
     if (!cleaned) continue;
 
-    const participant = role === 'USER' ? 'Antra' : 'GPT';
-    messages.push(textMessage(participant, cleaned));
+    const isUser = role === 'USER' || role === 'Human';
+    messages.push(textMessage(isUser ? 'Antra' : 'GPT', cleaned));
   }
 
   return messages;
@@ -72,10 +73,17 @@ async function main() {
     formatter: new NativeFormatter({ nameFormat: '{name}: ' }),
   });
 
-  // Set up target model
-  const targetAdapter = new AnthropicAdapter({
-    apiKey: process.env.ANTHROPIC_API_KEY!,
-  });
+  // Set up target model — use Bedrock for Bedrock models
+  const targetAdapter = target.provider === 'bedrock'
+    ? new BedrockAdapter({
+        region: process.env.AWS_REGION || 'us-west-2',
+        accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
+        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
+        sessionToken: process.env.AWS_SESSION_TOKEN,
+      })
+    : new AnthropicAdapter({
+        apiKey: process.env.ANTHROPIC_API_KEY!,
+      });
   const targetMembrane = new Membrane(targetAdapter, {
     assistantParticipant: 'Subject',
     formatter: new NativeFormatter({ nameFormat: '{name}: ' }),

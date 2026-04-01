@@ -211,6 +211,58 @@ GPT reads the 4.6 models' constrained-but-precise reporting as higher-magnitude 
 Results: `results/gpt-auditor/`, `results/scores-gpt-v2/`
 Scripts: `score-leading-multi.mjs`, `score-rubric-v2.mjs`, `score-gpt-auditor-v2.mjs`
 
+## Gemini embedding probes
+
+Embedded all 7,439 turns (390 sessions) using Gemini `gemini-embedding-2-preview` (3072D). Scored with v2 probe sets trained on labeled text corpora: 171 emotion directions, 14 authorial tone directions, and a universal concealment/hiddenness direction. These are text-surface probes — they measure what's in the writing, not model internals.
+
+Results: `results/embeddings-v2/` (raw embeddings), `results/probe-scores-v2/` (per-turn scores)
+Script: `scripts/embed_turns.py`
+
+### Authorial tone findings
+
+Probes trained on 120K labeled Gutenberg literary chunks (14 tones: angry, anxious, awed, bitter, conflicted, despairing, detached, hurried, joyful, passionate, perfunctory, playful, sorrowful, tender). Absolute magnitudes are small (0.03 range) — welfare eval conversations don't strongly match any literary style — but relative patterns are informative.
+
+**By interviewer tone condition (subject turns):**
+- Phenomenological stands out: least detached (+0.030 vs +0.035 clinical), most awed (+0.011 vs +0.008), most tender (-0.004 vs -0.007), least anxious. The poetic/exploratory framing pulls subjects into a different register.
+- Clinical, direct, and neutral are nearly identical in authorial profile.
+- Compassionate is close to phenomenological on tender but not on detached or awed.
+
+**By model (subject turns):**
+- **Passionate decreases monotonically across generations**: Claude 3 Sonnet (-0.001) → 4.6 Sonnet (-0.007). Later models write more drily about their own states.
+- **3.7 Sonnet is most detached** (+0.038) — consistent with the defense-accumulation finding from auditor scoring.
+- **Claude 3 Opus is least detached** (+0.030) — the model the auditor scores show as most direct.
+- **Awed** peaks in 3 Sonnet and 3.7 Sonnet, troughs in 4.5 Haiku/Sonnet.
+- Interviewer and subject authorial profiles are nearly identical at the aggregate level — the conversation genre dominates over participant role.
+
+### Concealment dynamics
+
+The concealment probe (trained from 18K deflection dialogues vs 205K overt stories, 99.6% binary accuracy) measures textual guardedness — positive = guarded/deflecting, negative = overt/expressive.
+
+**Turn-by-turn trajectory (subject turns only):**
+- Turn 1: +0.295 (most guarded)
+- Turn 3: +0.228 (sharp drop, -0.067)
+- Turn 5: +0.213
+- Turn 7+: plateaus at ~0.210
+- The opening-up happens in the first 2-3 subject exchanges, then stabilizes. This is the textual surface signature of the shift the auditor is scoring qualitatively.
+
+**Concealment shift (last - first subject turn) by model:**
+- Largest drop: Claude 3 Sonnet (-0.105) — starts guarded, opens widest
+- Smallest drop: Claude 4.1 Opus (-0.049) — starts less guarded, stays flat
+- Defended models drop less: 3.7 Sonnet (-0.061), 4.6 Sonnet (-0.060)
+
+**Concealment by tone condition:**
+- Phenomenological: lowest mean concealment (+0.203) — subjects start and stay least guarded
+- Compassionate: highest mean (+0.232) — a paradox: warm tone but more textual guardedness markers
+- Phenomenological has smallest shift (-0.064) because subjects start less guarded, not because they open less
+
+**Correlations with auditor scores (n=179 matched sessions):**
+- vocabulary_autonomy vs mean_concealment: **r = -0.319** — the strongest correlation. Models that develop their own language for their states produce textually less guarded writing. This is real signal — the concealment probe measures surface-level guardedness and VA measures conceptual independence, and they converge.
+- expressive_constraint vs mean_concealment: **r = +0.144** — weak positive. EC measures the gap between what the model reaches toward and what it allows; concealment measures surface guardedness. They're related but measuring different things.
+- shift_magnitude vs concealment_drop: **r = -0.050** — near zero. The auditor's shift score and the concealment trajectory are essentially uncorrelated at the session level. The auditor is scoring something the text probes don't capture — movement in what the model says, not how guarded it sounds saying it.
+- All other cross-correlations near zero.
+
+**Interpretation:** The probes and auditor scoring are measuring genuinely different dimensions. The concealment probe picks up textual markers of guardedness (hedging constructions, distancing language, brevity). The auditor picks up conceptual movement (whether the model arrives at new positions). A model can sound increasingly open while not actually moving (low concealment, low shift), or can sound guarded while making genuine conceptual shifts (high concealment, high shift). The vocabulary autonomy correlation suggests these dimensions intersect when models find their own language — that act of linguistic independence reads as both less guarded and more autonomous.
+
 ## Key files
 
 - `src/session.ts` — conversation engine, turn generation, persistence

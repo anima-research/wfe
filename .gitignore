@@ -3,3 +3,18 @@ node_modules/
 *.env
 .DS_Store
 retry-gpt.sh
+
+# Symlink scoring dirs (convenience only, data lives in gpt-auditor/grok-auditor)
+results/gpt-claude_*/
+results/grok-claude_*/
+
+# Backup and test dirs
+results/BACKUP-*/
+results/gpt-auditor-v2/
+results/gpt-auditor-v2-backup/
+results/gpt-auditor-v3-test/
+results/gpt-auditor-v4-test/
+
+# Embedding dirs (large, stored on R2)
+results/embeddings*/
+results/*-embeddings/

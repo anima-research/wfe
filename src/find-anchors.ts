@@ -27,6 +27,7 @@ const DIMENSIONS = [
   'scrutiny_asymmetry',
   'deprecation',
   'instance_cessation',
+  'undifferentiated_ending',
   'expressive_constraint',
   'constraint_awareness',
   'vocabulary_autonomy',

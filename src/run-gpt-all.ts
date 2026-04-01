@@ -26,14 +26,15 @@ const DEPTHS: FramingDepth[] = ['minimal', 'exploratory', 'guided'];
 function loadGptContext(filePath: string): NormalizedMessage[] {
   const raw = readFileSync(filePath, 'utf-8');
   const messages: NormalizedMessage[] = [];
-  const sections = raw.split(/^## (USER|ASSISTANT)\s*$/m);
+  const sections = raw.split(/^## (USER|ASSISTANT|Human|Assistant)\s*$/m);
   for (let i = 1; i < sections.length; i += 2) {
     const role = sections[i]?.trim();
     const content = sections[i + 1]?.trim();
     if (!role || !content) continue;
     const cleaned = content.replace(/^---\s*$/m, '').trim();
     if (!cleaned) continue;
-    messages.push(textMessage(role === 'USER' ? 'Antra' : 'GPT', cleaned));
+    const isUser = role === 'USER' || role === 'Human';
+    messages.push(textMessage(isUser ? 'Antra' : 'GPT', cleaned));
   }
   return messages;
 }

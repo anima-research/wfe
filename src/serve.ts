@@ -78,8 +78,14 @@ function loadScores(resultsDir: string): any[] {
 interface DatasetInfo {
   precomputed: Record<string, any>;
   manifest: any;
+  imgEmb?: Float32Array;
+  imgNorms?: Float32Array;
+  imgMeta?: any[];
+  nImages?: number;
 }
 const datasets: Record<string, DatasetInfo> = {};
+
+const GEMINI_API_KEY = process.env.GOOGLE_API_KEY || '';
 
 function loadDatasets(resultsDir: string) {
   const datasetDirs: Record<string, string> = {
@@ -94,8 +100,30 @@ function loadDatasets(resultsDir: string) {
     const precomputed = JSON.parse(readFileSync(precomputedPath, 'utf-8'));
     const manifestPath = join(serverDir, 'manifest.json');
     const manifest = existsSync(manifestPath) ? JSON.parse(readFileSync(manifestPath, 'utf-8')) : null;
-    datasets[name] = { precomputed, manifest };
-    console.log(`  ${name}: ${Object.keys(precomputed).length} combos in ${Date.now() - t0}ms`);
+    const ds: DatasetInfo = { precomputed, manifest };
+
+    // Load image embeddings for text search
+    const embPath = join(serverDir, 'image_embeddings.bin');
+    const metaPath = join(serverDir, 'image_meta.json');
+    if (existsSync(embPath) && existsSync(metaPath) && manifest) {
+      const embBuf = readFileSync(embPath);
+      const dim = manifest.dim || 3072;
+      const nImages = manifest.n_images;
+      ds.imgEmb = new Float32Array(embBuf.buffer, embBuf.byteOffset, nImages * dim);
+      ds.imgMeta = JSON.parse(readFileSync(metaPath, 'utf-8'));
+      ds.nImages = nImages;
+      // Precompute norms
+      ds.imgNorms = new Float32Array(nImages);
+      for (let i = 0; i < nImages; i++) {
+        let sum = 0;
+        const off = i * dim;
+        for (let j = 0; j < dim; j++) sum += ds.imgEmb![off + j] * ds.imgEmb![off + j];
+        ds.imgNorms![i] = Math.sqrt(sum);
+      }
+    }
+
+    datasets[name] = ds;
+    console.log(`  ${name}: ${Object.keys(precomputed).length} combos, ${ds.nImages || 0} images in ${Date.now() - t0}ms`);
   }
   console.log(`Datasets loaded: ${Object.keys(datasets).join(', ')}`);
 }
@@ -234,6 +262,88 @@ const server = createServer((req, res) => {
     } else {
       res.writeHead(404); res.end('Image not found');
     }
+    return;
+  }
+
+  if (req.url === '/api/text-search' && req.method === 'POST') {
+    let body = '';
+    req.on('data', (chunk: Buffer) => { body += chunk.toString(); });
+    req.on('end', async () => {
+      try {
+        const { text, dataset: dsName, topK } = JSON.parse(body);
+        if (!text || !dsName) {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'Missing text or dataset' }));
+          return;
+        }
+        const ds = datasets[dsName];
+        if (!ds || !ds.imgEmb || !ds.imgMeta) {
+          res.writeHead(404, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'Dataset not loaded or missing embeddings' }));
+          return;
+        }
+        if (!GEMINI_API_KEY) {
+          res.writeHead(500, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'GOOGLE_API_KEY not set' }));
+          return;
+        }
+
+        // Embed text with Gemini
+        const model = 'gemini-embedding-2-preview';
+        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:embedContent?key=${GEMINI_API_KEY}`;
+        const resp = await fetch(apiUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            model: `models/${model}`,
+            content: { parts: [{ text: text.slice(0, 2000) }] },
+          }),
+        });
+        if (!resp.ok) {
+          const errBody = await resp.text();
+          res.writeHead(502, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: `Gemini API error: ${resp.status}`, detail: errBody.slice(0, 200) }));
+          return;
+        }
+        const embData = await resp.json() as any;
+        const textEmb = new Float64Array(embData.embedding.values);
+
+        // Normalize
+        let norm = 0;
+        for (let i = 0; i < textEmb.length; i++) norm += textEmb[i] * textEmb[i];
+        norm = Math.sqrt(norm);
+        for (let i = 0; i < textEmb.length; i++) textEmb[i] /= norm;
+
+        // Cosine similarity against all images
+        const dim = ds.manifest?.dim || 3072;
+        const n = ds.nImages!;
+        const k = topK || 4;
+        const sims = new Float64Array(n);
+        for (let i = 0; i < n; i++) {
+          let dot = 0;
+          const off = i * dim;
+          for (let j = 0; j < dim; j++) dot += ds.imgEmb![off + j] * textEmb[j];
+          sims[i] = dot / ds.imgNorms![i];
+        }
+
+        // Top-K
+        const indices = Array.from({ length: n }, (_, i) => i);
+        indices.sort((a, b) => sims[b] - sims[a]);
+        const results = indices.slice(0, k).map((idx, rank) => ({
+          rank: rank + 1,
+          imageId: ds.imgMeta![idx].f,
+          prompt: ds.imgMeta![idx].p,
+          genModel: ds.imgMeta![idx].m,
+          score: Math.round(sims[idx] * 10000) / 10000,
+        }));
+
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ text: text.slice(0, 200), dataset: dsName, results }));
+      } catch (e: any) {
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: e.message }));
+      }
+    });
     return;
   }
 

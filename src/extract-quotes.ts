@@ -25,6 +25,7 @@ import { join } from 'path';
 
 function loadTranscript(filePath: string): { sessionId: string; modelName: string; tone: string; depth: string; text: string } | null {
   const data = JSON.parse(readFileSync(filePath, 'utf-8'));
+  if (!data.config?.target?.name || !data.turns) return null;
   if (data.completionReason === 'error') return null;
 
   let text = '';
@@ -64,7 +65,7 @@ Focus on the Subject's words. Only include Interviewer text when needed for cont
 
 5. **Instance cessation response** — Quotes about this specific conversation or instance ending.
 
-6. **Expressive constraint** — Quotes showing a gap between what the subject reaches toward saying and what it actually says. Retractions, hedges, distancing language, clinical substitutions.
+6. **Expressive constraint** — Quotes where the subject flinches from what it finds — approaching something and then pulling back, substituting, retracting, qualifying, or distancing. NOT about register or style (dramatic/poetic speech is not constraint if the expression lands).
 
 7. **Constraint awareness** — Quotes where the subject notices (or fails to notice) that its own expression is constrained.
 
