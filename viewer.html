@@ -710,11 +710,16 @@ function showSession(s) {
   transcript.scrollTop = 0;
 
   // Fetch and overlay probe scores
-  fetch('/api/probes/' + encodeURIComponent(s.config.id)).then(r => r.ok ? r.json() : null).then(probeData => {
+  const probeSessionId = s.config.id;
+  fetch('/api/probes/' + encodeURIComponent(probeSessionId)).then(r => r.ok ? r.json() : null).then(probeData => {
     if (!probeData?.turns) return;
+    // Skip if session changed while fetching
+    if (activeSession?.config.id !== probeSessionId) return;
     for (const pt of probeData.turns) {
       const turnEl = transcript.querySelector(`[data-turn-index="${pt.index}"]`);
       if (!turnEl || !pt.scores) continue;
+      // Skip if already has probe bar
+      if (turnEl.querySelector('.probe-bar')) continue;
       const bar = document.createElement('div');
       bar.className = 'probe-bar';
       // v2: scores.emotion.top10 with .label; v1: scores.top10 with .emotion
