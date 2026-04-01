@@ -1268,13 +1268,19 @@ function renderModelsTable(container) {
           if (fa !== fb) return fa.localeCompare(fb);
           return a.config.id.localeCompare(b.config.id);
         });
+        // Restore filters from URL hash before building UI
+        if (location.hash.length > 1) {
+          restoreFromHash();
+        }
         buildFilters();
         renderList();
         updateStats();
         updateAggregates();
-        // Restore state from URL hash, or show first session
+        // Show session from hash, or default to first
         if (location.hash.length > 1) {
-          restoreFromHash();
+          const params = new URLSearchParams(location.hash.split('?')[1] || '');
+          const sid = params.get('s');
+          if (sid) { const s = sessions.find(s => s.config.id === sid); if (s) showSession(s); }
         } else if (sessions.length > 0) {
           showSession(sessions[0]);
         }
