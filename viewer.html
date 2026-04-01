@@ -812,6 +812,8 @@ function getNestedVal(obj, path, {excludeZero = false} = {}) {
   }
   // Exclude zeros for fields where 0 = not probed
   if (excludeZero && typeof val === 'number' && val === 0) return null;
+  // -1 means not scored / not applicable — always exclude
+  if (typeof val === 'number' && val === -1) return null;
   return val;
 }
 
