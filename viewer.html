@@ -82,7 +82,9 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sa
 .phase-separator span { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: #666; }
 
 /* Scores panel */
-.scores-panel { border-top: 1px solid #333; padding: 16px 24px; background: #0d0d0d; max-height: 45%; overflow-y: auto; }
+.scores-panel { border-top: 1px solid #333; padding: 16px 24px; background: #0d0d0d; overflow-y: auto; height: 280px; min-height: 60px; position: relative; }
+.scores-panel .resize-handle { position: absolute; top: 0; left: 0; right: 0; height: 6px; cursor: ns-resize; z-index: 5; }
+.scores-panel .resize-handle:hover, .scores-panel .resize-handle.dragging { background: #336; }
 .scores-panel h3 { font-size: 12px; color: #888; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px; }
 .score-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 10px; }
 .score-card { background: #151515; border: 1px solid #252525; border-radius: 6px; padding: 10px 12px; }
@@ -174,7 +176,9 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sa
     <div class="transcript" id="transcript">
       <div class="empty-state">Select a session or drop a results directory</div>
     </div>
-    <div class="scores-panel" id="scores-panel" style="display:none"></div>
+    <div class="scores-panel" id="scores-panel" style="display:none">
+      <div class="resize-handle" id="scores-resize"></div>
+    </div>
     <div class="table-view" id="table-view"></div>
   </div>
 </div>
@@ -950,6 +954,30 @@ document.addEventListener('mouseleave', e => {
   const tip = host.querySelector('.score-tooltip');
   if (tip) tip.style.display = 'none';
 }, true);
+
+// Scores panel resize
+(function() {
+  const handle = document.getElementById('scores-resize');
+  const panel = document.getElementById('scores-panel');
+  let startY, startH;
+  handle.addEventListener('mousedown', e => {
+    e.preventDefault();
+    startY = e.clientY;
+    startH = panel.offsetHeight;
+    handle.classList.add('dragging');
+    const onMove = e => {
+      const h = Math.max(60, startH - (e.clientY - startY));
+      panel.style.height = h + 'px';
+    };
+    const onUp = () => {
+      handle.classList.remove('dragging');
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+    };
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  });
+})();
 
 // View switching
 let currentView = 'transcript';
