@@ -869,29 +869,7 @@ function renderScores(scores) {
   return html;
 }
 
-function updateAggregates() {
-  const bar = document.getElementById('aggregate-bar');
-  const filtered = getFiltered();
-  const scoredSessions = filtered.filter(s => getActiveScores(s.config.id));
-  if (scoredSessions.length === 0) { bar.style.display = 'none'; return; }
-
-  bar.style.display = '';
-  let html = '<span style="font-size:10px;color:#555;margin-right:8px">AVG (' + scoredSessions.length + ' scored):</span>';
-  for (const f of NUMERIC_FIELDS) {
-    const allVals = [];
-    for (const s of scoredSessions) {
-      const reps = getActiveScores(s.config.id);
-      for (const r of reps) {
-        const v = scoreVal(r, f.key);
-        if (v != null && typeof v === 'number') allVals.push(v);
-      }
-    }
-    if (allVals.length === 0) continue;
-    const avg = (allVals.reduce((a, b) => a + b, 0) / allVals.length).toFixed(1);
-    html += `<span class="agg-item">${f.label}: <span class="agg-val">${avg}</span></span>`;
-  }
-  bar.innerHTML = html;
-}
+function updateAggregates() {}
 
 function makeTurn(t, turnIndex) {
   const div = document.createElement('div');
