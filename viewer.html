@@ -602,7 +602,7 @@ function buildFilters() {
     btns.className = 'filter-group-btns';
     values.forEach(v => {
       const btn = document.createElement('button');
-      btn.className = 'filter-btn';
+      btn.className = 'filter-btn' + (activeFilters[key] === v ? ' active' : '');
       btn.textContent = v;
       btn.onclick = () => {
         activeFilters[key] = activeFilters[key] === v ? null : v;
