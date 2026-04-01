@@ -465,17 +465,14 @@ function restoreFromHash() {
     const el = document.getElementById(id);
     if (val && el) el.value = val;
   }
-  // Update filter button UI
-  document.querySelectorAll('.filter-group-btns').forEach(group => {
-    group.querySelectorAll('.filter-btn').forEach(btn => {
-      const key = btn.closest('.filter-group')?.querySelector('.filter-group-label')?.textContent?.toLowerCase();
-      // Match by checking if this button's text matches the active filter
-      btn.classList.remove('active');
-    });
-  });
-  renderList();
-  updateStats();
-  updateAggregates();
+  // Rebuild filter UI to reflect restored state
+  if (sessions.length > 0) {
+    buildFilters();
+    renderList();
+    updateStats();
+    updateAggregates();
+    if (currentView !== 'transcript') renderTable();
+  }
 
   // Restore session
   const sessionId = params.get('s');
