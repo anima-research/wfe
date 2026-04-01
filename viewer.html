@@ -1111,6 +1111,7 @@ function renderModelsTable(container) {
       const byJudge = scoreData[s.config.id];
       if (!byJudge) continue;
       for (const [judge, reps] of Object.entries(byJudge)) {
+        if (activeFilters.judge && judge !== activeFilters.judge) continue;
         let groupLabel = judge;
         if (groupBy === 'scorer+auditor') groupLabel = `${judge} / ${getAuditorLabel(s)}`;
         const key = `${s.config.target.name}\0${groupLabel}`;
