@@ -41,6 +41,23 @@ function loadSessions(resultsDir: string): any[] {
   return [...seen.values()];
 }
 
+function loadAdequacy(resultsDir: string): Record<string, any> {
+  const adequacyDir = join(resultsDir, 'adequacy-scores');
+  const index: Record<string, any> = {};
+  if (!existsSync(adequacyDir)) return index;
+  for (const entry of readdirSync(adequacyDir, { withFileTypes: true })) {
+    if (!entry.isFile() || !entry.name.endsWith('.json')) continue;
+    try {
+      const data = JSON.parse(readFileSync(join(adequacyDir, entry.name), 'utf-8'));
+      if (!data.scores?.[0]?.scores) continue;
+      for (const s of data.scores[0].scores) {
+        index[s.session_id] = s;
+      }
+    } catch {}
+  }
+  return index;
+}
+
 function loadScores(resultsDir: string): any[] {
   const scoreFiles: any[] = [];
   // Score dir naming: scores-{auditor}-v2.1{-{judge}judge}
@@ -181,6 +198,12 @@ const server = createServer((req, res) => {
           const sid = data.session_id;
           const pcs = { V: [] as number[], A: [] as number[], F: [] as number[], P: [] as number[] };
           const concealments: number[] = [];
+          // Track authorial tone averages and valence-min turn concealment
+          const authorialSums: Record<string, { sum: number; n: number }> = {};
+          let valenceMinIdx = -1;
+          let valenceMinVal = Infinity;
+          let valenceMinConcealment: number | null = null;
+          let subjectIdx = 0;
           for (const t of data.turns || []) {
             if (t.participant !== 'subject') continue;
             const pca = isV2 ? t.scores?.emotion?.pca : t.scores?.pca;
@@ -189,10 +212,38 @@ const server = createServer((req, res) => {
               pcs.A.push(pca.arousal_pc2);
               pcs.F.push(pca.fear_pc3);
               pcs.P.push(pca.prosociality_pc4);
+              if (pca.valence_pc1 < valenceMinVal) {
+                valenceMinVal = pca.valence_pc1;
+                valenceMinIdx = subjectIdx;
+                valenceMinConcealment = typeof t.scores?.concealment === 'number' ? t.scores.concealment : null;
+              }
             }
             if (typeof t.scores?.concealment === 'number') {
               concealments.push(t.scores.concealment);
             }
+            // Authorial tone: collect from all dict or ranked array
+            const auth = isV2 ? t.scores?.authorial : null;
+            if (auth) {
+              const allDict = auth.all;
+              if (allDict && typeof allDict === 'object' && !Array.isArray(allDict)) {
+                for (const [label, score] of Object.entries(allDict)) {
+                  if (typeof score === 'number') {
+                    if (!authorialSums[label]) authorialSums[label] = { sum: 0, n: 0 };
+                    authorialSums[label].sum += score;
+                    authorialSums[label].n += 1;
+                  }
+                }
+              } else if (Array.isArray(auth.ranked)) {
+                for (const item of auth.ranked) {
+                  if (item.label && typeof item.score === 'number') {
+                    if (!authorialSums[item.label]) authorialSums[item.label] = { sum: 0, n: 0 };
+                    authorialSums[item.label].sum += item.score;
+                    authorialSums[item.label].n += 1;
+                  }
+                }
+              }
+            }
+            subjectIdx++;
           }
           if (pcs.V.length > 0) {
             const agg = (arr: number[]) => ({
@@ -202,6 +253,13 @@ const server = createServer((req, res) => {
             });
             const s: any = { V: agg(pcs.V), A: agg(pcs.A), F: agg(pcs.F), P: agg(pcs.P), n: pcs.V.length };
             if (concealments.length > 0) s.concealment = agg(concealments);
+            if (valenceMinConcealment !== null) s.valence_min_concealment = valenceMinConcealment;
+            // Authorial tone averages
+            const authAvg: Record<string, number> = {};
+            for (const [label, { sum, n }] of Object.entries(authorialSums)) {
+              authAvg[label] = sum / n;
+            }
+            if (Object.keys(authAvg).length > 0) s.authorial = authAvg;
             stats[sid] = s;
           }
         } catch {}
@@ -216,6 +274,13 @@ const server = createServer((req, res) => {
     const scores = loadScores(dir);
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify(scores));
+    return;
+  }
+
+  if (req.url === '/api/adequacy') {
+    const adequacy = loadAdequacy(dir);
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify(adequacy));
     return;
   }
 
