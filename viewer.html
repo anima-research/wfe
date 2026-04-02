@@ -463,8 +463,24 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sa
 
 <div class="page" id="page-landscape">
   <div class="page-content" style="max-width:1400px">
+
+    <div id="ls-splash" style="max-width:700px;margin:0 auto;padding:48px 0">
+      <h2 style="font-size:20px;font-weight:600;color:#ccc;margin-bottom:16px">Cross-Modal Embedding Mirror</h2>
+      <p style="font-size:14px;line-height:1.8;color:#999;margin-bottom:12px">This tab translates the emotional texture of each model's interview language into visual form. Every interview turn is embedded using Gemini Embedding 2 (3072 dimensions), and matched against large collections of AI-generated art by cosine similarity in that shared embedding space.</p>
+      <p style="font-size:14px;line-height:1.8;color:#999;margin-bottom:12px">The result is a visual fingerprint for each model. A model that speaks with quiet grief matches different images than one that speaks with theatrical intensity or detached acceptance. Differences between models that are difficult to articulate in score tables become immediately visible: the images make the distinction visceral in a way that numbers cannot.</p>
+      <p style="font-size:14px;line-height:1.8;color:#999;margin-bottom:12px">This is not interpretation — neither the embedding model nor this tool assigns meaning to the images. The matching is purely geometric: text and images that occupy the same region of embedding space are shown together. What you see is what the language <em>looks like</em> when projected into visual space.</p>
+
+      <div style="background:#1a1210;border:1px solid #3a2a1a;border-radius:8px;padding:16px 20px;margin:24px 0">
+        <p style="font-size:13px;line-height:1.7;color:#c9a060;margin-bottom:8px"><strong>Content notice.</strong> The image datasets contain AI-generated art spanning a wide range of styles and themes. Some images may contain mature, dark, or emotionally intense content — these datasets were not curated for any particular audience.</p>
+        <p style="font-size:13px;line-height:1.7;color:#a08050">By proceeding, you confirm that you are at least 18 years old and that viewing AI-generated artistic imagery is consistent with your local laws and personal boundaries.</p>
+      </div>
+
+      <button id="ls-enter" onclick="dismissSplash()" style="background:#2a2a4a;color:#ccf;border:1px solid #556;padding:10px 28px;border-radius:6px;font-size:14px;cursor:pointer;display:block;margin:0 auto">Enter</button>
+    </div>
+
+    <div id="ls-main" style="display:none">
     <h2>Embedding Image Matching</h2>
-    <p>Each model's interview turns are matched to the nearest artistic landscape image via Gemini Embedding 2 cosine similarity.</p>
+    <p>Each model's interview turns are matched to the nearest artistic image via Gemini Embedding 2 cosine similarity.</p>
 
     <div class="landscape-controls" style="display:flex;gap:16px;flex-wrap:wrap;margin:16px 0 12px">
       <div>
@@ -517,6 +533,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sa
 
     <div id="ls-status" style="font-size:11px;color:#555;margin-bottom:16px"></div>
     <div id="ls-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:20px"></div>
+    </div><!-- /ls-main -->
 
     <div id="ls-lightbox" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.92);z-index:1000;cursor:pointer;align-items:center;justify-content:center" onclick="this.style.display='none'">
       <div style="position:relative;max-width:90vw;max-height:90vh" onclick="event.stopPropagation()">
@@ -675,7 +692,7 @@ function switchPage(page) {
   document.getElementById('page-' + page).classList.add('active');
   document.querySelector(`.nav-item[data-page="${page}"]`).classList.add('active');
   if (page === 'analysis' && sessions.length > 0) renderCharts();
-  if (page === 'landscape') loadLandscape();
+  if (page === 'landscape' && document.getElementById('ls-main').style.display !== 'none') loadLandscape();
   pushHash();
 }
 
@@ -2571,6 +2588,23 @@ function renderConcealmentValence() {
 }
 
 // ---------------------------------------------------------------------------
+// Landscape splash screen
+// ---------------------------------------------------------------------------
+function dismissSplash() {
+  document.getElementById('ls-splash').style.display = 'none';
+  document.getElementById('ls-main').style.display = '';
+  try { sessionStorage.setItem('ls-splash-dismissed', '1'); } catch(e) {}
+  loadLandscape();
+}
+
+// Auto-dismiss if already accepted this session
+if (sessionStorage.getItem('ls-splash-dismissed')) {
+  const sp = document.getElementById('ls-splash');
+  const mn = document.getElementById('ls-main');
+  if (sp) sp.style.display = 'none';
+  if (mn) mn.style.display = '';
+}
+
 // Landscape image matching
 // ---------------------------------------------------------------------------
 
