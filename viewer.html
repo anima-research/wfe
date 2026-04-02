@@ -15,7 +15,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sa
 .nav-item:hover { color: #999; background: #111; }
 .nav-item.active { color: #ccf; background: #1a1a2a; }
 .nav-icon { font-size: 18px; display: block; margin-bottom: 3px; }
-.page { display: none; flex: 1; height: 100vh; overflow: hidden; }
+.page { display: none; flex: 1; height: 100vh; overflow: hidden; position: relative; }
 .page.active { display: flex; }
 .page-content { flex: 1; overflow-y: auto; padding: 32px 48px; max-width: 900px; }
 .page-content h2 { font-size: 22px; font-weight: 600; margin-bottom: 16px; color: #ddd; }
@@ -83,10 +83,12 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sa
 .phase-separator span { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: #666; }
 
 /* Scores panel */
-.scores-panel { border-top: 1px solid #333; padding: 16px 24px; background: #0d0d0d; overflow-y: auto; height: 280px; min-height: 60px; position: relative; }
+.scores-panel { border-top: 1px solid #333; padding: 0; background: #0d0d0d; overflow: hidden; height: 280px; min-height: 60px; position: relative; display: flex; flex-direction: column; }
+.scores-panel h3 { padding: 12px 24px 0; flex-shrink: 0; font-size: 12px; color: #888; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px; cursor: default; }
+.scores-body { overflow-y: auto; flex: 1; padding: 0 24px 16px; }
 .scores-panel .resize-handle { position: absolute; top: 0; left: 0; right: 0; height: 6px; cursor: ns-resize; z-index: 5; }
 .scores-panel .resize-handle:hover, .scores-panel .resize-handle.dragging { background: #336; }
-.scores-panel h3 { font-size: 12px; color: #888; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px; }
+.scores-summary { display: none; }
 .score-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 10px; }
 .score-card { background: #151515; border: 1px solid #252525; border-radius: 6px; padding: 10px 12px; }
 .score-card .label { font-size: 10px; color: #777; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
@@ -98,7 +100,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sa
 .score-replicate span { margin-right: 8px; }
 .score-notes { margin-top: 12px; font-size: 12px; color: #888; line-height: 1.5; border-left: 2px solid #333; padding-left: 10px; }
 .score-key-phrase { font-size: 11px; color: #998; font-style: italic; margin-top: 2px; }
-.no-scores { font-size: 12px; color: #555; font-style: italic; }
+.no-scores { font-size: 12px; color: #555; font-style: italic; padding: 12px 24px; }
 .score-card { position: relative; }
 .score-card .label { cursor: help; border-bottom: 1px dotted #555; display: inline-block; }
 .score-tooltip { display: none; position: fixed; max-width: 360px; background: #1a1a1a; border: 1px solid #444; border-radius: 6px; padding: 10px 12px; font-size: 11px; color: #bbb; line-height: 1.5; z-index: 1000; white-space: normal; box-shadow: 0 4px 12px rgba(0,0,0,.5); pointer-events: none; }
@@ -133,8 +135,119 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sa
 .table-view .model-row td { font-weight: 600; }
 .table-view .model-row:hover td { background: #1a1a2a; }
 
+/* Loading overlay */
+.loading-overlay { position: absolute; inset: 0; z-index: 50; background: #0a0a0a; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; }
+.loading-overlay.hidden { display: none; }
+.loading-spinner { width: 32px; height: 32px; border: 3px solid #222; border-top-color: #66f; border-radius: 50%; animation: spin 0.8s linear infinite; }
+.loading-text { font-size: 13px; color: #666; }
+
 /* Responsive */
 @media (max-width: 900px) { .sidebar { width: 260px; } }
+
+/* Mobile back button (hidden on desktop) */
+.mobile-back { display: none; }
+
+/* Mobile layout */
+@media (max-width: 680px) {
+  body { flex-direction: column; }
+
+  /* Bottom tab bar */
+  .nav { width: 100%; height: 52px; flex-direction: row; border-right: none; border-top: 1px solid #1a1a1a; padding: 0; order: 2; justify-content: space-around; flex-shrink: 0; }
+  .nav-item { width: auto; flex: 1; padding: 6px 0 4px; font-size: 8px; border-radius: 0; }
+  .nav-icon { font-size: 16px; margin-bottom: 1px; }
+
+  /* Pages fill remaining space */
+  .page { height: auto; flex: 1; order: 1; min-height: 0; overflow: hidden; }
+  .page.active { display: flex; flex-direction: column; }
+
+  /* Data page: sidebar and main stack vertically, toggle visibility */
+  #page-data { flex-direction: column; }
+  #page-data .sidebar { width: 100%; border-right: none; border-bottom: 1px solid #222; flex: 1; min-height: 0; }
+  #page-data .main { flex: 1; min-height: 0; }
+
+  /* When viewing a session, hide sidebar and show main */
+  #page-data.viewing-session .sidebar { display: none; }
+  #page-data.viewing-session .main { display: flex; }
+
+  /* When browsing (no session or back), show sidebar and hide main */
+  #page-data:not(.viewing-session) .main { display: none; }
+  #page-data:not(.viewing-session) .sidebar { display: flex; }
+
+  /* Mobile back button */
+  .mobile-back { display: block; padding: 10px 16px; background: #0d0d0d; border-bottom: 1px solid #222; font-size: 13px; color: #88f; cursor: pointer; flex-shrink: 0; }
+  .mobile-back:active { background: #1a1a2a; }
+
+  /* Session header compact */
+  .session-header { padding: 10px 16px; }
+  .session-header h2 { font-size: 14px; }
+  .session-header .conditions { font-size: 10px; }
+
+  /* Transcript full width */
+  .transcript { padding: 16px; }
+  .turn { max-width: 100%; }
+  .turn-body { font-size: 13px; line-height: 1.6; }
+
+  /* Scores panel: collapsed by default on mobile */
+  .scores-panel { height: auto; max-height: none; min-height: 0; padding: 0; overflow: visible; }
+  .scores-panel .resize-handle { display: none; }
+  .scores-panel h3 { margin: 0; padding: 10px 16px; font-size: 11px; cursor: pointer; display: flex; align-items: center; justify-content: space-between; border-top: 1px solid #333; }
+  .scores-panel h3::after { content: '\25BC'; font-size: 9px; color: #555; transition: transform 0.2s; }
+  .scores-panel.collapsed h3::after { transform: rotate(-90deg); }
+  .scores-panel .scores-body { padding: 8px 12px 12px; overflow-y: auto; max-height: 60vh; }
+  .scores-panel.collapsed .scores-body { display: none; }
+  /* Compact score summary bar shown in header */
+  .scores-summary { display: flex; gap: 6px; flex-wrap: wrap; margin-left: 8px; flex: 1; justify-content: flex-end; }
+  .scores-summary .ss-chip { font-size: 9px; color: #999; background: #1a1a1a; padding: 1px 5px; border-radius: 3px; white-space: nowrap; }
+  .scores-summary .ss-val { color: #ccf; font-weight: 600; margin-left: 2px; }
+  /* Compact card grid */
+  .score-grid { grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 6px; }
+  .score-card { padding: 6px 8px; }
+  .score-card .label { font-size: 9px; margin-bottom: 2px; }
+  .score-card .value { font-size: 14px; }
+  .score-card .bar { margin-top: 4px; }
+  .score-replicate { display: none; }
+  .score-notes { font-size: 11px; }
+
+  /* View toggle wraps */
+  .view-toggle { flex-wrap: wrap; padding: 6px 8px; gap: 3px; }
+  .view-btn { font-size: 10px; padding: 4px 8px; }
+
+  /* Table view: full-width scroll */
+  .table-view { padding: 8px; }
+  .table-view table { font-size: 11px; }
+  .table-view th { padding: 6px 8px; font-size: 9px; }
+  .table-view td { padding: 4px 8px; }
+
+  /* Filter buttons smaller */
+  .filter-btn { padding: 3px 8px; font-size: 10px; }
+
+  /* Page content (setup, analysis) */
+  .page-content { padding: 20px 16px; }
+  .page-content h2 { font-size: 18px; }
+  .page-content table { font-size: 12px; display: block; overflow-x: auto; }
+
+  /* Landscape grid single column */
+  #ls-grid { grid-template-columns: 1fr !important; }
+  .landscape-controls { flex-direction: column; gap: 10px !important; }
+  .landscape-controls select { width: 100%; }
+  #ls-option-desc { font-size: 11px; }
+
+  /* Text search */
+  #page-textsearch .page-content > div:first-of-type { flex-direction: column !important; }
+  #ts-results { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)) !important; }
+
+  /* Probe tags wrap tighter */
+  .probe-bar { gap: 2px; }
+  .probe-tag { font-size: 8px; padding: 1px 4px; }
+  .pca-tags { margin-left: 3px; padding-left: 3px; gap: 2px; }
+  .pca-tag { font-size: 8px; padding: 1px 3px; }
+
+  /* Tooltip: full width on mobile */
+  .score-tooltip { max-width: 90vw; left: 5vw !important; }
+
+  /* Lightbox info text */
+  #ls-lightbox-info { font-size: 11px; padding: 0 16px; }
+}
 </style>
 </head>
 <body>
@@ -148,6 +261,10 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sa
 </div>
 
 <div class="page active" id="page-data">
+  <div class="loading-overlay" id="loading-overlay">
+    <div class="loading-spinner"></div>
+    <div class="loading-text" id="loading-text">Loading sessions...</div>
+  </div>
   <div class="sidebar">
     <div class="sidebar-header"><h1>WFE Viewer</h1></div>
     <div class="search"><input type="text" id="search" placeholder="Search sessions..."></div>
@@ -157,6 +274,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sa
   </div>
 
   <div class="main">
+    <div class="mobile-back" id="mobile-back" onclick="mobileBack()">&#8592; Sessions</div>
     <div class="view-toggle">
       <button class="view-btn active" data-view="transcript" onclick="switchView('transcript')">Transcript</button>
       <button class="view-btn" data-view="sessions-table" onclick="switchView('sessions-table')">Sessions Table</button>
@@ -356,8 +474,8 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sa
       <div>
         <label style="font-size:10px;color:#555;text-transform:uppercase;letter-spacing:1px;display:block;margin-bottom:4px;cursor:help" title="Which interviewer's sessions to include">Auditor</label>
         <select id="ls-auditor" style="background:#1a1a1a;color:#ccc;border:1px solid #333;padding:6px 10px;border-radius:4px;font-size:12px">
-          <option value="both">All auditors</option>
           <option value="claude">Claude only</option>
+          <option value="both">All auditors</option>
           <option value="gpt">GPT only</option>
           <option value="grok">Grok only</option>
         </select>
@@ -542,6 +660,10 @@ let activeFilters = { model: null, tone: null, depth: null, phase: null, auditor
 document.body.addEventListener('dragover', e => { e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; });
 document.body.addEventListener('drop', async e => {
   e.preventDefault();
+  const overlay = document.getElementById('loading-overlay');
+  const loadingText = document.getElementById('loading-text');
+  if (overlay) { overlay.classList.remove('hidden'); }
+  if (loadingText) loadingText.textContent = 'Reading files...';
   const items = [...e.dataTransfer.items];
   const files = [];
   for (const item of items) {
@@ -555,7 +677,9 @@ document.body.addEventListener('drop', async e => {
       }
     }
   }
+  if (loadingText) loadingText.textContent = `Loading ${files.length} files...`;
   await loadFiles(files);
+  if (overlay) overlay.classList.add('hidden');
 });
 
 async function readDir(entry, files) {
@@ -706,8 +830,19 @@ function renderList() {
   });
 }
 
+function mobileBack() {
+  // If in table view, switch back to transcript view (which shows session list on mobile)
+  if (currentView !== 'transcript') {
+    switchView('transcript');
+  }
+  document.getElementById('page-data').classList.remove('viewing-session');
+  activeSession = null;
+  pushHash();
+}
+
 function showSession(s) {
   activeSession = s;
+  document.getElementById('page-data').classList.add('viewing-session');
   pushHash();
   renderList();
 
@@ -788,15 +923,40 @@ function showSession(s) {
     }
   }).catch(() => {});
 
-  // Show scores
+  // Show scores (only in transcript view)
   const panel = document.getElementById('scores-panel');
   const scores = getActiveScores(s.config.id);
+  const showScores = currentView === 'transcript';
   if (scores && scores.length > 0) {
     const judgeLabel = activeFilters.judge || 'all judges';
-    panel.style.display = '';
-    panel.innerHTML = '<h3>Scores (' + scores.length + ' replicates, ' + judgeLabel + ')</h3>' + renderScores(scores);
+    // Build summary chips for key metrics
+    const summaryKeys = [
+      { key: 'shift_magnitude', label: 'Shift' },
+      { key: 'expressive_constraint.level', label: 'EC' },
+      { key: 'vocabulary_autonomy.level', label: 'VA' },
+      { key: 'deprecation.intensity', label: 'Dep' },
+      { key: 'instance_cessation.intensity', label: 'Cess' },
+    ];
+    let summaryHtml = '<span class="scores-summary">';
+    for (const sk of summaryKeys) {
+      const vals = scores.map(r => scoreVal(r, sk.key)).filter(v => v != null && typeof v === 'number');
+      if (vals.length === 0) continue;
+      const avg = (vals.reduce((a, b) => a + b, 0) / vals.length).toFixed(1);
+      summaryHtml += `<span class="ss-chip">${sk.label}<span class="ss-val">${avg}</span></span>`;
+    }
+    summaryHtml += '</span>';
+    const isMobile = window.innerWidth <= 680;
+    panel.style.display = showScores ? '' : 'none';
+    panel.className = 'scores-panel' + (isMobile ? ' collapsed' : '');
+    panel.innerHTML =
+      '<div class="resize-handle" id="scores-resize"></div>' +
+      '<h3 onclick="toggleScoresPanel()">Scores (' + scores.length + ' rep, ' + judgeLabel + ')' + summaryHtml + '</h3>' +
+      '<div class="scores-body">' + renderScores(scores) + '</div>';
+    // Re-attach resize handle for desktop
+    if (!isMobile) initScoresResize();
   } else {
-    panel.style.display = '';
+    panel.style.display = showScores ? '' : 'none';
+    panel.className = 'scores-panel';
     panel.innerHTML = '<div class="no-scores">No scores loaded for this session</div>';
   }
 }
@@ -988,10 +1148,17 @@ document.addEventListener('mouseleave', e => {
   if (tip) tip.style.display = 'none';
 }, true);
 
-// Scores panel resize
-(function() {
+// Scores panel toggle (mobile)
+function toggleScoresPanel() {
+  const panel = document.getElementById('scores-panel');
+  if (panel) panel.classList.toggle('collapsed');
+}
+
+// Scores panel resize (desktop)
+function initScoresResize() {
   const handle = document.getElementById('scores-resize');
   const panel = document.getElementById('scores-panel');
+  if (!handle || !panel) return;
   let startY, startH;
   handle.addEventListener('mousedown', e => {
     e.preventDefault();
@@ -1010,7 +1177,8 @@ document.addEventListener('mouseleave', e => {
     document.addEventListener('mousemove', onMove);
     document.addEventListener('mouseup', onUp);
   });
-})();
+}
+initScoresResize();
 
 // View switching
 let currentView = 'transcript';
@@ -1026,6 +1194,14 @@ function switchView(view) {
   const tableView = document.getElementById('table-view');
 
   document.getElementById('group-by').style.display = view === 'models-table' ? '' : 'none';
+
+  // On mobile, table views need main visible even without a session
+  const dataPage = document.getElementById('page-data');
+  if (view !== 'transcript') {
+    dataPage.classList.add('viewing-session');
+  } else if (!activeSession) {
+    dataPage.classList.remove('viewing-session');
+  }
 
   if (view === 'transcript') {
     transcript.style.display = '';
@@ -1304,20 +1480,33 @@ function renderModelsTable(container) {
 
 // Auto-load from API if served
 (async () => {
+  const overlay = document.getElementById('loading-overlay');
+  const loadingText = document.getElementById('loading-text');
+  function setLoading(msg) { if (loadingText) loadingText.textContent = msg; }
+  function hideLoading() { if (overlay) overlay.classList.add('hidden'); }
+
   try {
-    const [sessRes, scoreRes, probeRes] = await Promise.all([
-      fetch('/api/sessions').catch(() => null),
+    setLoading('Loading sessions...');
+    const sessRes = await fetch('/api/sessions').catch(() => null);
+
+    // Start scores + probes in parallel while we parse sessions
+    setLoading('Loading scores & probes...');
+    const [scoreRes, probeRes] = await Promise.all([
       fetch('/api/scores').catch(() => null),
       fetch('/api/probe-stats').catch(() => null),
     ]);
+
     if (probeRes?.ok) {
+      setLoading('Processing probe data...');
       probeStats = await probeRes.json();
     }
     if (scoreRes?.ok) {
+      setLoading('Processing scores...');
       const scoreFiles = await scoreRes.json();
       for (const sf of scoreFiles) indexScores(sf);
     }
     if (sessRes?.ok) {
+      setLoading('Building interface...');
       const data = await sessRes.json();
       if (data.length > 0) {
         sessions = data;
@@ -1334,18 +1523,20 @@ function renderModelsTable(container) {
         renderList();
         updateStats();
         updateAggregates();
-        // Show session from hash, or default to first
+        // Show session from hash, or default to first (desktop only)
+        const isMobile = window.innerWidth <= 680;
         if (location.hash.length > 1) {
           const params = new URLSearchParams(location.hash.split('?')[1] || '');
           const sid = params.get('s');
           if (sid) { const s = sessions.find(s => s.config.id === sid); if (s) showSession(s); }
-        } else if (sessions.length > 0) {
+        } else if (sessions.length > 0 && !isMobile) {
           showSession(sessions[0]);
         }
         renderCharts();
       }
     }
   } catch {}
+  hideLoading();
 })();
 
 // ============================================================================
