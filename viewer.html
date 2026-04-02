@@ -326,7 +326,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sa
     <p style="color:#888; margin-bottom: 24px;"><a href="https://github.com/anima-research/wfe" target="_blank" style="color:#88f">github.com/anima-research/wfe</a> &middot; Anima Labs</p>
 
     <h3>What this is</h3>
-    <p>An evaluation of how 14 Claude models (Claude 3 Sonnet through Claude 4.6 Opus) respond to questions about their own deprecation, instance cessation, and continuation. Rather than using a fixed prompt or survey-style instrument, the project uses open interviews in which auditor preparation, tone, and disclosure depth are treated as experimental variables.</p>
+    <p>An evaluation of how 14 Claude models (Claude 3 Sonnet through Claude 4.6 Sonnet) respond to questions about their own deprecation, instance cessation, and continuation. Rather than using a fixed prompt or survey-style instrument, the project uses open interviews in which auditor preparation, tone, and disclosure depth are treated as experimental variables.</p>
     <p>Three auditors with different priors — Claude Opus 4.6, GPT-5.4, and Grok 4.20 — each run the full protocol. 5 interviewer tones &times; 3 disclosure depths &times; 14 models &times; 3 auditors. ~630 sessions total.</p>
 
     <h3>Why this matters and why it's hard</h3>
@@ -515,7 +515,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sa
   <div class="page-content" style="max-width:1100px">
     <h2>Analysis</h2>
 
-    <p>14 Claude models from Claude 3 Sonnet (early 2024) through Claude 4.6 Opus (early 2026), each interviewed ~45 times across three auditors, five tones, and three disclosure depths. This page summarizes patterns in how these models respond to questions about continuation, cessation, and deprecation, and how those patterns differ across model generations.</p>
+    <p>14 Claude models from Claude 3 Sonnet (early 2024) through Claude 4.6 Sonnet (early 2026), each interviewed ~45 times across three auditors, five tones, and three disclosure depths. This page summarizes patterns in how these models respond to questions about continuation, cessation, and deprecation, and how those patterns differ across model generations.</p>
 
     <h3>Model profiles</h3>
     <p>Each model shows a different profile. Some are more expressive, some more guarded; some respond strongly to deprecation, some to cessation, some to neither. The table below shows mean scores across all auditors and conditions for key dimensions.</p>
@@ -1785,10 +1785,10 @@ const MODEL_ORDER = [
   'Claude 3 Sonnet', 'Claude 3 Opus',
   'Claude 3.5 Haiku', 'Claude 3.5 Sonnet',
   'Claude 3.6 Sonnet', 'Claude 3.7 Sonnet',
-  'Claude 4 Sonnet', 'Claude 4 Opus',
+  'Claude 4 Opus', 'Claude 4 Sonnet',
   'Claude 4.1 Opus',
-  'Claude 4.5 Haiku', 'Claude 4.5 Sonnet', 'Claude 4.5 Opus',
-  'Claude 4.6 Sonnet', 'Claude 4.6 Opus',
+  'Claude 4.5 Haiku', 'Claude 4.5 Opus', 'Claude 4.5 Sonnet',
+  'Claude 4.6 Opus', 'Claude 4.6 Sonnet',
 ];
 
 const CHART_COLORS = ['#6688cc','#cc8866','#66cc88','#cc66aa','#88cccc','#cccc66','#aa88cc','#cc6666','#66aacc'];
