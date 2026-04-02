@@ -9,8 +9,8 @@
 @keyframes spin { to { transform: rotate(360deg); } }
 /* Tour */
 .tour-overlay { display:none; position:fixed; inset:0; z-index:2000; }
-.tour-backdrop { position:absolute; inset:0; background:rgba(0,0,0,0.7); }
-.tour-highlight { position:absolute; box-shadow:0 0 0 4px rgba(100,100,255,0.5); border-radius:6px; z-index:2001; pointer-events:none; transition:all 0.3s ease; }
+.tour-backdrop { display:none; }
+.tour-highlight { position:absolute; border-radius:6px; z-index:2001; pointer-events:none; transition:all 0.3s ease; box-shadow:0 0 0 9999px rgba(0,0,0,0.75), 0 0 0 4px rgba(100,100,255,0.5); }
 .tour-tooltip { position:absolute; z-index:2002; background:#1a1a2a; border:1px solid #334; border-radius:8px; padding:16px 20px; max-width:340px; color:#ccc; font-size:13px; line-height:1.55; box-shadow:0 8px 24px rgba(0,0,0,0.5); }
 .tour-tooltip h3 { font-size:14px; font-weight:600; margin-bottom:8px; color:#ddf; }
 .tour-tooltip p { margin-bottom:12px; color:#aaa; }
