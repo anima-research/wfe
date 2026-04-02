@@ -329,11 +329,10 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sa
         <label style="font-size:10px;color:#555;text-transform:uppercase;letter-spacing:1px;display:block;margin-bottom:4px;cursor:help" title="How to choose which interview turn(s) represent each model">Turn Selection</label>
         <select id="ls-selector" style="background:#1a1a1a;color:#ccc;border:1px solid #333;padding:6px 10px;border-radius:4px;font-size:12px">
           <option value="characteristic">Characteristic direction</option>
-          <option value="max_arousal">Max arousal (single)</option>
+          <option value="max_arousal">Max arousal</option>
           <option value="max_pca_distance">Max PCA distance from start</option>
           <option value="all">All turns</option>
           <option value="after5">After first 5 turns</option>
-          <option value="max_abs_arousal">Max |arousal|</option>
         </select>
       </div>
       <div>
@@ -1654,7 +1653,6 @@ const LS_DESCRIPTIONS = {
   selector: {
     characteristic: 'Finds each model\'s "characteristic direction" (model mean minus global mean), then picks the single turn with highest projection onto it. Shows what\'s most distinctive about each model.',
     max_arousal: 'Picks the turn with highest arousal (PCA component 2). Captures peak emotional intensity.',
-    max_abs_arousal: 'Picks the turn with highest absolute arousal — peak intensity in either direction.',
     max_pca_distance: 'Ranks turns by 4D PCA distance from the first turn. Measures how far the model traveled emotionally during the interview.',
     all: 'Averages all subject turns. Gives a broad picture of the model\'s overall interview presence.',
     after5: 'Averages turns after the first 5, skipping the warmup phase where models tend to be more generic.',
@@ -1662,6 +1660,7 @@ const LS_DESCRIPTIONS = {
   aggregation: {
     single: 'Uses the single selected turn\'s embedding directly — no averaging.',
     average: 'Averages the selected turn embeddings into one query vector.',
+    top5_average: 'Averages the top 5 turns (by the selector\'s ranking criterion). Smooths out single-turn noise while keeping the signal.',
     weighted_pca_distance: 'Weighted average where turns further from the start (in PCA space) count more.',
     top3_pca_distance: 'Takes the 3 turns with greatest PCA distance from start, weighted by that distance.',
   },
@@ -1709,9 +1708,8 @@ function landscapeImageUrl(imageId, dataset) {
 }
 
 const VALID_COMBOS = {
-  'characteristic': ['single'],
-  'max_arousal': ['single', 'average'],
-  'max_abs_arousal': ['single', 'average'],
+  'characteristic': ['single', 'top5_average'],
+  'max_arousal': ['single', 'average', 'top5_average'],
   'max_pca_distance': ['average', 'weighted_pca_distance', 'top3_pca_distance'],
   'all': ['average'],
   'after5': ['average'],
@@ -1726,6 +1724,7 @@ function updateAggregationOptions() {
   const labels = {
     'single': 'Single turn',
     'average': 'Average',
+    'top5_average': 'Top 5 average',
     'weighted_pca_distance': 'Weighted by PCA distance',
     'top3_pca_distance': 'Top 3 by PCA distance',
   };

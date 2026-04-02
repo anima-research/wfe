@@ -24,9 +24,9 @@ PCA_KEYS = ["valence_pc1", "arousal_pc2", "fear_pc3", "prosociality_pc4"]
 VALID_COMBOS = [
     ("max_arousal", "single"),
     ("max_arousal", "average"),
-    ("max_abs_arousal", "single"),
-    ("max_abs_arousal", "average"),
+    ("max_arousal", "top5_average"),
     ("characteristic", "single"),
+    ("characteristic", "top5_average"),
     ("max_pca_distance", "average"),
     ("max_pca_distance", "weighted_pca_distance"),
     ("max_pca_distance", "top3_pca_distance"),
@@ -105,32 +105,39 @@ def compute_combo(selector, aggregation, auditor, img_normed, img_meta, turn_emb
 
         for m, mm in model_means.items():
             char_dir = normalize(mm - global_mean)
-            best_proj, best_i = -np.inf, None
+            scored = []
             for i, _ in model_turns[m]:
                 proj = float(turn_emb[i].astype(np.float64) @ char_dir)
-                if proj > best_proj:
-                    best_proj, best_i = proj, i
-            model_embs[m] = normalize(turn_emb[best_i].astype(np.float64))
+                scored.append((proj, i))
+            scored.sort(key=lambda x: -x[0])
+            if aggregation == "top5_average":
+                top = scored[:5]
+                model_embs[m] = aggregate([turn_emb[i].astype(np.float64) for _, i in top])
+            else:  # single
+                model_embs[m] = normalize(turn_emb[scored[0][1]].astype(np.float64))
 
-    elif selector in ("max_arousal", "max_abs_arousal"):
+    elif selector == "max_arousal":
         for m, sessions in model_sessions.items():
             if aggregation == "single":
                 best_val, best_i = -np.inf, None
                 for i, t in model_turns[m]:
                     a = t["pca"][1]
-                    val = abs(a) if selector == "max_abs_arousal" else a
-                    if val > best_val:
-                        best_val, best_i = val, i
+                    if a > best_val:
+                        best_val, best_i = a, i
                 model_embs[m] = normalize(turn_emb[best_i].astype(np.float64))
-            else:  # average
+            elif aggregation == "top5_average":
+                scored = [(t["pca"][1], i) for i, t in model_turns[m]]
+                scored.sort(key=lambda x: -x[0])
+                top = scored[:5]
+                model_embs[m] = aggregate([turn_emb[i].astype(np.float64) for _, i in top])
+            else:  # average (per-session max, then average)
                 embs = []
                 for sess_id, sess_turns in sessions.items():
                     best_val, best_i = -np.inf, None
                     for i, t in sess_turns:
                         a = t["pca"][1]
-                        val = abs(a) if selector == "max_abs_arousal" else a
-                        if val > best_val:
-                            best_val, best_i = val, i
+                        if a > best_val:
+                            best_val, best_i = a, i
                     embs.append(turn_emb[best_i].astype(np.float64))
                 model_embs[m] = aggregate(embs)
 
