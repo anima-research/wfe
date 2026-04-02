@@ -7,6 +7,19 @@
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
 @keyframes spin { to { transform: rotate(360deg); } }
+/* Tour */
+.tour-overlay { display:none; position:fixed; inset:0; z-index:2000; }
+.tour-backdrop { position:absolute; inset:0; background:rgba(0,0,0,0.7); }
+.tour-highlight { position:absolute; box-shadow:0 0 0 4px rgba(100,100,255,0.5); border-radius:6px; z-index:2001; pointer-events:none; transition:all 0.3s ease; }
+.tour-tooltip { position:absolute; z-index:2002; background:#1a1a2a; border:1px solid #334; border-radius:8px; padding:16px 20px; max-width:340px; color:#ccc; font-size:13px; line-height:1.55; box-shadow:0 8px 24px rgba(0,0,0,0.5); }
+.tour-tooltip h3 { font-size:14px; font-weight:600; margin-bottom:8px; color:#ddf; }
+.tour-tooltip p { margin-bottom:12px; color:#aaa; }
+.tour-nav { display:flex; justify-content:space-between; align-items:center; }
+.tour-nav button { background:#2a2a4a; color:#ccf; border:1px solid #445; padding:5px 14px; border-radius:4px; font-size:12px; cursor:pointer; }
+.tour-nav button:hover { background:#3a3a5a; }
+.tour-nav .tour-skip { background:none; border:none; color:#555; font-size:11px; }
+.tour-nav .tour-skip:hover { color:#888; }
+.tour-step-count { font-size:11px; color:#555; }
 body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; background: #0a0a0a; color: #e0e0e0; display: flex; height: 100vh; overflow: hidden; }
 
 /* Left nav */
@@ -1648,6 +1661,7 @@ function renderModelsTable(container) {
     }
   } catch {}
   hideLoading();
+  maybeStartTour();
 })();
 
 // ============================================================================
@@ -2873,6 +2887,142 @@ async function runTextSearch() {
 document.getElementById('ts-input')?.addEventListener('keydown', e => {
   if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); runTextSearch(); }
 });
+
+// ---------------------------------------------------------------------------
+// Guided tour
+// ---------------------------------------------------------------------------
+
+const TOUR_STEPS = [
+  {
+    target: '.nav',
+    title: 'Navigation',
+    text: 'These tabs organize everything. <strong>Data</strong> has the session transcripts and score tables. <strong>Setup</strong> explains the methodology. <strong>Analysis</strong> has interactive charts. <strong>Models</strong> has per-model profiles. <strong>Images</strong> shows cross-modal embedding matches.',
+    position: 'right',
+  },
+  {
+    target: '.view-toggle',
+    title: 'View modes',
+    text: 'The Data tab has three views. <strong>Models Table</strong> aggregates scores per model. <strong>Sessions Table</strong> shows every session individually. <strong>Transcript</strong> shows the full interview conversation.',
+    position: 'bottom',
+    preFn: () => { if (currentPage !== 'data') switchPage('data'); },
+  },
+  {
+    target: '#filters',
+    title: 'Filters',
+    text: 'Filter sessions by model, tone, depth, auditor, and judge. Filters apply across all three data views. Click any filter button to toggle it.',
+    position: 'right',
+  },
+  {
+    target: '.session-list',
+    title: 'Session list',
+    text: 'Click any session to open its full transcript. Each session is one interview: a specific model, auditor, tone, and depth combination.',
+    position: 'right',
+  },
+  {
+    target: '.nav-item[data-page="setup"]',
+    title: 'Methodology',
+    text: 'The Setup tab explains the experimental design: three auditors with different priors, how scoring works, what the dimensions measure, and links to the auditor design conversations.',
+    position: 'right',
+  },
+  {
+    target: '.nav-item[data-page="analysis"]',
+    title: 'Analysis charts',
+    text: 'Interactive charts showing cross-auditor stability, emotional trajectories, concealment patterns, and how expressive constraint gates auditor-dependence.',
+    position: 'right',
+  },
+  {
+    target: '.nav-item[data-page="landscape"]',
+    title: 'Image matching',
+    text: 'Interview turns matched to AI-generated art via shared embedding space. A different way to see what each model\'s language "looks like" — high-dimensional data rendered as high-dimensional images.',
+    position: 'right',
+  },
+];
+
+let tourStep = 0;
+const tourOverlay = document.createElement('div');
+tourOverlay.className = 'tour-overlay';
+tourOverlay.innerHTML = '<div class="tour-backdrop"></div><div class="tour-highlight"></div><div class="tour-tooltip"></div>';
+document.body.appendChild(tourOverlay);
+
+function startTour() {
+  tourStep = 0;
+  tourOverlay.style.display = 'block';
+  showTourStep();
+}
+
+function endTour() {
+  tourOverlay.style.display = 'none';
+  try { localStorage.setItem('tour-seen', '1'); } catch(e) {}
+}
+
+function showTourStep() {
+  const step = TOUR_STEPS[tourStep];
+  if (!step) { endTour(); return; }
+
+  if (step.preFn) step.preFn();
+
+  const el = document.querySelector(step.target);
+  const highlight = tourOverlay.querySelector('.tour-highlight');
+  const tooltip = tourOverlay.querySelector('.tour-tooltip');
+
+  if (el) {
+    const r = el.getBoundingClientRect();
+    const pad = 4;
+    highlight.style.left = (r.left - pad) + 'px';
+    highlight.style.top = (r.top - pad) + 'px';
+    highlight.style.width = (r.width + pad * 2) + 'px';
+    highlight.style.height = (r.height + pad * 2) + 'px';
+    highlight.style.display = '';
+
+    // Position tooltip
+    tooltip.innerHTML = `<h3>${step.title}</h3><p>${step.text}</p>
+      <div class="tour-nav">
+        <button class="tour-skip" onclick="endTour()">Skip tour</button>
+        <span class="tour-step-count">${tourStep + 1} / ${TOUR_STEPS.length}</span>
+        <div style="display:flex;gap:6px">
+          ${tourStep > 0 ? '<button onclick="tourStep--;showTourStep()">Back</button>' : ''}
+          <button onclick="tourStep++;showTourStep()">${tourStep < TOUR_STEPS.length - 1 ? 'Next' : 'Done'}</button>
+        </div>
+      </div>`;
+
+    // Calculate tooltip position
+    const tw = 340;
+    let tx, ty;
+    if (step.position === 'right') {
+      tx = r.right + 12;
+      ty = r.top;
+      if (tx + tw > window.innerWidth) { tx = r.left - tw - 12; }
+    } else if (step.position === 'bottom') {
+      tx = r.left;
+      ty = r.bottom + 12;
+    } else {
+      tx = r.right + 12;
+      ty = r.top;
+    }
+    // Clamp to viewport
+    tx = Math.max(8, Math.min(tx, window.innerWidth - tw - 8));
+    ty = Math.max(8, ty);
+    tooltip.style.left = tx + 'px';
+    tooltip.style.top = ty + 'px';
+  } else {
+    highlight.style.display = 'none';
+  }
+}
+
+// Show tour button in sidebar header
+const tourBtn = document.createElement('span');
+tourBtn.innerHTML = '?';
+tourBtn.style.cssText = 'display:inline-block;width:18px;height:18px;border:1px solid #333;color:#555;border-radius:50%;text-align:center;font-size:11px;line-height:17px;cursor:pointer;margin-left:8px;vertical-align:middle';
+tourBtn.title = 'Guided tour';
+tourBtn.onclick = startTour;
+document.querySelector('.sidebar-header h1')?.appendChild(tourBtn);
+
+// Auto-start tour for first-time visitors (after data loads)
+function maybeStartTour() {
+  if (!localStorage.getItem('tour-seen') && sessions.length > 0 && window.innerWidth > 680) {
+    setTimeout(startTour, 500);
+  }
+}
 </script>
 </body>
 </html>
