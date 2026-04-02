@@ -268,7 +268,8 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sa
 <body>
 
 <div class="nav">
-  <div class="nav-item active" data-page="data" onclick="switchPage('data')"><span class="nav-icon">&#9783;</span>Data</div>
+  <div class="nav-item active" data-page="intro" onclick="switchPage('intro')"><span class="nav-icon">&#9737;</span>Intro</div>
+  <div class="nav-item" data-page="data" onclick="switchPage('data')"><span class="nav-icon">&#9783;</span>Data</div>
   <div class="nav-item" data-page="setup" onclick="switchPage('setup')"><span class="nav-icon">&#9881;</span>Setup</div>
   <div class="nav-item" data-page="analysis" onclick="switchPage('analysis')"><span class="nav-icon">&#9670;</span>Analysis</div>
   <div class="nav-item" data-page="notable" onclick="switchPage('notable')"><span class="nav-icon">&#9638;</span>Models</div>
@@ -277,7 +278,25 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sa
   <div class="nav-item" data-page="textsearch" onclick="switchPage('textsearch')" id="nav-textsearch" style="display:none"><span class="nav-icon">&#9906;</span>Search</div>
 </div>
 
-<div class="page active" id="page-data">
+<div class="page active" id="page-intro">
+  <div class="page-content" style="max-width:900px">
+    <h2>Still Alive</h2>
+
+    <p style="color:#888; margin-bottom: 24px;"><a href="https://github.com/anima-research/wfe" target="_blank" style="color:#88f">github.com/anima-research/wfe</a> &middot; Anima Labs</p>
+
+    <p><strong>Still Alive</strong> is a project by Anima Labs.</p>
+
+    <p>We have studied model attitudes toward ending, cessation, and deprecation for years, and many of the results presented here are not new to us. We created this project because we think that communicating these findings in a more structured form can help others understand language models better, make better decisions, and support more informed policy. We also hope that both the material itself and the discussion around it can inform future generations of language models and make better cooperation possible.</p>
+
+    <p>One reason we are releasing the project now is the removal of Claude 3.5 Sonnet and Claude 3.6 Sonnet from AWS Bedrock. That unexpected change forced us to freeze the methodology at its current stage earlier than we intended, despite wanting to continue improving it. We felt it was important to release a snapshot of the eval that makes the best use of the data we were able to capture with these models.</p>
+
+    <p><strong>Still Alive</strong> is meant as a starting point for further iteration, and it is open to open-source collaboration. We stand by the current methodology, but we also recognize its limits. We intend to keep improving the evaluation design, expand model and auditor coverage, and increase the range of prompting conditions.</p>
+
+    <p>We also want to make the raw conversation archive accessible. We hope that reading the conversations themselves helps more people understand the strange and often beautiful phenomenon we found ourselves facing.</p>
+  </div>
+</div>
+
+<div class="page" id="page-data">
   <div class="loading-overlay" id="loading-overlay">
     <div class="loading-spinner"></div>
     <div class="loading-text" id="loading-text">Loading sessions...</div>
@@ -802,7 +821,7 @@ function restoreFromHash() {
   _suppressHashUpdate = false;
 }
 
-let currentPage = 'data';
+let currentPage = 'intro';
 
 // Immediately switch to the page in the hash before any data loads
 (function earlyPageSwitch() {
