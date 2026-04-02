@@ -17,4 +17,10 @@ results/gpt-auditor-v4-test/
 
 # Embedding dirs (large, stored on R2)
 results/embeddings*/
-results/*-embeddings/
+results/*-embeddings/*
+!results/*-embeddings/server/
+results/*-embeddings/server/*
+# Keep server metadata needed by Railway (via LFS)
+!results/*-embeddings/server/precomputed.json
+!results/*-embeddings/server/manifest.json
+!results/*-embeddings/server/image_meta.json
