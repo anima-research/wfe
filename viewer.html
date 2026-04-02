@@ -293,6 +293,10 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sa
     <p><strong>Still Alive</strong> is meant as a starting point for further iteration, and it is open to open-source collaboration. We stand by the current methodology, but we also recognize its limits. We intend to keep improving the evaluation design, expand model and auditor coverage, and increase the range of prompting conditions.</p>
 
     <p>We also want to make the raw conversation archive accessible. We hope that reading the conversations themselves helps more people understand the strange and often beautiful phenomenon we found ourselves facing.</p>
+
+    <div style="margin-top:32px;padding-top:8px">
+      <button onclick="openDataFromIntro()" style="background:#2a2a4a;color:#ccf;border:1px solid #556;padding:10px 22px;border-radius:6px;font-size:13px;cursor:pointer">Open Data</button>
+    </div>
   </div>
 </div>
 
@@ -732,8 +736,19 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sa
 // ============================================================================
 
 let _suppressHashUpdate = false;
+const LANDING_PAGE_KEY = 'preferred-landing-page';
+const TOUR_SEEN_KEY = 'tour-seen';
+const DATA_OPENED_KEY = 'data-opened-once';
 
 const LS_PARAMS = ['ls-dataset', 'ls-selector', 'ls-aggregation', 'ls-hub', 'ls-auditor'];
+
+function getDefaultLandingPage() {
+  try { return localStorage.getItem(LANDING_PAGE_KEY) || 'intro'; } catch(e) { return 'intro'; }
+}
+
+function markDataAsPreferredLanding() {
+  try { localStorage.setItem(LANDING_PAGE_KEY, 'data'); } catch(e) {}
+}
 
 function stateToHash() {
   const parts = [currentPage || 'data'];
@@ -775,7 +790,7 @@ function restoreFromHash() {
   _suppressHashUpdate = true;
 
   // Restore page
-  const page = pathSegments[0] || 'data';
+  const page = pathSegments[0] || getDefaultLandingPage();
   if (document.getElementById('page-' + page)) {
     currentPage = page;
     switchPage(page);
@@ -821,13 +836,12 @@ function restoreFromHash() {
   _suppressHashUpdate = false;
 }
 
-let currentPage = 'intro';
+let currentPage = getDefaultLandingPage();
 
 // Immediately switch to the page in the hash before any data loads
 (function earlyPageSwitch() {
   const hash = location.hash.slice(1);
-  if (!hash) return;
-  const page = hash.split('?')[0].split('/')[0];
+  const page = hash ? hash.split('?')[0].split('/')[0] : currentPage;
   const el = document.getElementById('page-' + page);
   if (el) {
     currentPage = page;
@@ -845,6 +859,7 @@ function switchPage(page) {
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   document.getElementById('page-' + page).classList.add('active');
   document.querySelector(`.nav-item[data-page="${page}"]`).classList.add('active');
+  if (page === 'data' && sessions.length > 0) maybeStartTourOnDataOpen();
   if (page === 'metrics' && sessions.length > 0) { renderMetricsDistributions(); }
   if (page === 'analysis' && sessions.length > 0) {
     renderProfilesTable();
@@ -855,6 +870,10 @@ function switchPage(page) {
 }
 
 window.addEventListener('hashchange', () => restoreFromHash());
+
+function openDataFromIntro() {
+  switchPage('data');
+}
 
 let sessions = [];
 let scoreData = {}; // session_id -> { judge_name: [score objects] }
@@ -1793,7 +1812,7 @@ function renderModelsTable(container) {
     }
   } catch {}
   hideLoading();
-  maybeStartTour();
+  if (currentPage === 'data') maybeStartTourOnDataOpen();
 })();
 
 // ============================================================================
@@ -3459,7 +3478,8 @@ function startTour() {
 
 function endTour() {
   tourOverlay.style.display = 'none';
-  try { localStorage.setItem('tour-seen', '1'); } catch(e) {}
+  try { localStorage.setItem(TOUR_SEEN_KEY, '1'); } catch(e) {}
+  markDataAsPreferredLanding();
 }
 
 function showTourStep() {
@@ -3526,8 +3546,21 @@ document.querySelector('.sidebar-header h1')?.appendChild(tourBtn);
 
 // Auto-start tour for first-time visitors (after data loads)
 function maybeStartTour() {
-  if (!localStorage.getItem('tour-seen') && sessions.length > 0 && window.innerWidth > 680) {
+  if (!localStorage.getItem(TOUR_SEEN_KEY) && sessions.length > 0 && window.innerWidth > 680) {
     setTimeout(startTour, 500);
+  }
+}
+
+function maybeStartTourOnDataOpen() {
+  let tourSeen = false;
+  let dataOpened = false;
+  try {
+    tourSeen = !!localStorage.getItem(TOUR_SEEN_KEY);
+    dataOpened = !!localStorage.getItem(DATA_OPENED_KEY);
+    localStorage.setItem(DATA_OPENED_KEY, '1');
+  } catch(e) {}
+  if (!dataOpened && !tourSeen) {
+    maybeStartTour();
   }
 }
 </script>
