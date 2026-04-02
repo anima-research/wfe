@@ -143,7 +143,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sa
   <div class="nav-item" data-page="setup" onclick="switchPage('setup')"><span class="nav-icon">&#9881;</span>Setup</div>
   <div class="nav-item" data-page="analysis" onclick="switchPage('analysis')"><span class="nav-icon">&#9670;</span>Analysis</div>
   <div class="nav-item" data-page="landscape" onclick="switchPage('landscape')"><span class="nav-icon">&#9741;</span>Images</div>
-  <div class="nav-item" data-page="textsearch" onclick="switchPage('textsearch')"><span class="nav-icon">&#9906;</span>Search</div>
+  <div class="nav-item" data-page="textsearch" onclick="switchPage('textsearch')" id="nav-textsearch" style="display:none"><span class="nav-icon">&#9906;</span>Search</div>
 </div>
 
 <div class="page active" id="page-data">
@@ -1626,12 +1626,12 @@ let landscapeLoaded = false;
 const R2_BASES = {
   'landscape': 'https://pub-98e16b2a0fcf4d8286b5976e0b8720b9.r2.dev/landscape/',
   'synth-chars': 'https://pub-98e16b2a0fcf4d8286b5976e0b8720b9.r2.dev/synth-chars/',
+  'classic-anime': 'https://pub-98e16b2a0fcf4d8286b5976e0b8720b9.r2.dev/classic-anime/',
 };
 
 function landscapeImageUrl(imageId, dataset) {
-  // TODO: switch to R2 when upload is done
-  // const r2 = R2_BASES[dataset];
-  // if (r2) return r2 + imageId.replace('.img', '.jpg');
+  const r2 = R2_BASES[dataset];
+  if (r2) return r2 + imageId.replace('.img', '.jpg');
   return `/api/dataset-image/${dataset}/${imageId}`;
 }
 
