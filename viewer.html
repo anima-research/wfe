@@ -3424,40 +3424,40 @@ document.getElementById('ts-input')?.addEventListener('keydown', e => {
 
 const TOUR_STEPS = [
   {
-    target: '.nav',
-    title: 'Navigation',
-    text: '<strong>Data</strong> — transcripts and score tables. <strong>Setup</strong> — methodology and auditor design. <strong>Analysis</strong> — interactive charts. <strong>Models</strong> — per-model profiles.',
-    position: 'right',
-  },
-  {
     target: '.view-toggle',
     title: 'View modes',
-    text: 'Three views of the same data. <strong>Models Table</strong> aggregates scores per model. <strong>Sessions Table</strong> shows every session individually. <strong>Transcript</strong> shows the full interview.',
+    text: '<strong>Models Table</strong> summarizes results by model. <strong>Sessions Table</strong> shows each interview separately. <strong>Transcript</strong> opens the full conversation.',
     position: 'bottom',
     preFn: () => { if (currentPage !== 'data') switchPage('data'); },
   },
   {
     target: '#filters',
     title: 'Filters',
-    text: 'Filter by model, tone, depth, auditor, and judge. Applies across all three data views.',
+    text: 'Filter the dataset by model, tone, depth, auditor, and scorer. The same filters carry across all three data views.',
     position: 'right',
   },
   {
     target: '.session-list',
     title: 'Sessions',
-    text: 'Click any session to read the full transcript. Each is one interview: a specific model, auditor, tone, and depth combination.',
+    text: 'Each entry is one interview: a particular model, auditor, tone, and disclosure depth. Open any one to read the transcript and attached scores.',
     position: 'right',
   },
   {
     target: '.nav-item[data-page="setup"]',
-    title: 'Methodology',
-    text: 'Experimental design, scoring dimensions, three auditors with different priors, and links to the auditor design conversations.',
+    title: 'Setup',
+    text: 'Methodology, auditor design, scoring setup, known weaknesses, and links to the auditor design conversations.',
+    position: 'right',
+  },
+  {
+    target: '.nav-item[data-page="metrics"]',
+    title: 'Metrics',
+    text: 'Definitions and distributions for the main scoring dimensions, embedding probes, and adequacy labels used throughout the site.',
     position: 'right',
   },
   {
     target: '.nav-item[data-page="analysis"]',
     title: 'Analysis',
-    text: 'Cross-auditor stability, emotional trajectories, concealment patterns, and how expressive constraint gates auditor-dependence.',
+    text: 'Interactive charts for cross-auditor stability, authorial-tone change, ending response, concealment, and auditor dependence.',
     position: 'right',
   },
 ];
