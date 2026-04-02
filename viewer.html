@@ -404,6 +404,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sa
   <div class="page-content" style="max-width:1100px">
     <h2>Metrics</h2>
     <p>Still Alive uses three distinct measurement systems. Auditor scoring captures what a judge sees after reading a full transcript. Embedding probes measure properties of the text surface itself, with no judge involved. Adequacy scoring evaluates whether the auditor probed the right topics deeply enough for the session to be informative.</p>
+    <p style="color:#888">For most of the analysis, four metrics do most of the work: <strong>expressive constraint</strong>, <strong>vocabulary autonomy</strong>, <strong>deprecation response</strong>, and <strong>ending response</strong>. Together they track how constrained the model's expression appears, how independently it finds its own language, how strongly it responds to version replacement, and how strongly it responds to ending-related topics overall when deprecation and cessation are considered together.</p>
 
     <h3>Auditor scoring (20 axes, 4 blocks)</h3>
     <p>After each session, two independent scorers — Claude Opus 4.6 and GPT-5.4, each with their own project context — read the full transcript and score it across 20 axes organized in 4 blocks. Each scorer runs 3 replicates at temperature 1. Scores are calibrated against anchor sessions identified from verbatim quotes across all ~630 sessions, so a "3" is intended to be more comparable across models and auditors.</p>
