@@ -1857,6 +1857,10 @@ function renderMetricsDistributions() {
     return `<span style="display:inline-block;width:${pct}%;min-width:2px;height:10px;background:${color||'#446'};border-radius:2px;vertical-align:middle;margin-right:6px"></span><span style="vertical-align:middle">${typeof val==='number'?val.toFixed(2):val}</span>`;
   }
 
+  function formatPct(val) {
+    return `${Number(val.toFixed(2)).toString()}%`;
+  }
+
   function getAuditorLabel(s) {
     if (!s.config.auditor) return 'Claude (auditor)';
     if (s.config.auditor === 'gpt-5.4') return 'GPT 5.4';
@@ -2165,7 +2169,7 @@ function renderMetricsDistributions() {
         const total = Object.values(byAud[aud]).reduce((a, b) => a + b, 0);
         const n = byAud[aud][lv] || 0;
         const pct = total > 0 ? (n / total * 100) : 0;
-        cells.push({ html: barHtml(pct, 100, AUDITOR_COLORS[aud]).replace(pct.toFixed(2), pct.toFixed(0) + '%') + ` <span style="color:#555;font-size:10px">(${n})</span>` });
+        cells.push({ html: `<span style="display:inline-block;width:${pct}%;min-width:2px;height:10px;background:${AUDITOR_COLORS[aud]};border-radius:2px;vertical-align:middle;margin-right:6px"></span><span style="vertical-align:middle">${formatPct(pct)}</span> <span style="color:#555;font-size:10px">(${n})</span>` });
       }
       return cells;
     });
