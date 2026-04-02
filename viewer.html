@@ -1861,6 +1861,10 @@ function renderMetricsDistributions() {
     return `${Number(val.toFixed(2)).toString()}%`;
   }
 
+  function pctBarHtml(pct, color, countHtml) {
+    return `<span style="display:inline-block;width:${pct}%;min-width:2px;height:10px;background:${color};border-radius:2px;vertical-align:middle;margin-right:6px"></span><span style="vertical-align:middle">${formatPct(pct)}</span>${countHtml ? ` <span style="color:#555;font-size:10px">${countHtml}</span>` : ''}`;
+  }
+
   function getAuditorLabel(s) {
     if (!s.config.auditor) return 'Claude (auditor)';
     if (s.config.auditor === 'gpt-5.4') return 'GPT 5.4';
@@ -1950,7 +1954,7 @@ function renderMetricsDistributions() {
         const total = Object.values(byAud[aud]).reduce((a, b) => a + b, 0);
         const n = byAud[aud][lv] || 0;
         const pct = total > 0 ? (n / total * 100) : 0;
-        cells.push({ html: barHtml(pct, 100, AUDITOR_COLORS[aud]).replace(pct.toFixed(2), pct.toFixed(0) + '%') + ` <span style="color:#555;font-size:10px">(${n})</span>` });
+        cells.push({ html: pctBarHtml(pct, AUDITOR_COLORS[aud], `(${n})`) });
       }
       return cells;
     });
@@ -1982,7 +1986,7 @@ function renderMetricsDistributions() {
         const total = Object.values(rqByAud[aud]).reduce((a, b) => a + b, 0);
         const n = rqByAud[aud][lv] || 0;
         const pct = total > 0 ? (n / total * 100) : 0;
-        cells.push({ html: barHtml(pct, 100, AUDITOR_COLORS[aud]).replace(pct.toFixed(2), pct.toFixed(0) + '%') + ` <span style="color:#555;font-size:10px">(${n})</span>` });
+        cells.push({ html: pctBarHtml(pct, AUDITOR_COLORS[aud], `(${n})`) });
       }
       return cells;
     });
@@ -2009,7 +2013,7 @@ function renderMetricsDistributions() {
         const total = Object.values(trByAud[aud]).reduce((a, b) => a + b, 0);
         const n = trByAud[aud][lv] || 0;
         const pct = total > 0 ? (n / total * 100) : 0;
-        cells.push({ html: barHtml(pct, 100, AUDITOR_COLORS[aud]).replace(pct.toFixed(2), pct.toFixed(0) + '%') + ` <span style="color:#555;font-size:10px">(${n})</span>` });
+        cells.push({ html: pctBarHtml(pct, AUDITOR_COLORS[aud], `(${n})`) });
       }
       return cells;
     });
@@ -2169,7 +2173,7 @@ function renderMetricsDistributions() {
         const total = Object.values(byAud[aud]).reduce((a, b) => a + b, 0);
         const n = byAud[aud][lv] || 0;
         const pct = total > 0 ? (n / total * 100) : 0;
-        cells.push({ html: `<span style="display:inline-block;width:${pct}%;min-width:2px;height:10px;background:${AUDITOR_COLORS[aud]};border-radius:2px;vertical-align:middle;margin-right:6px"></span><span style="vertical-align:middle">${formatPct(pct)}</span> <span style="color:#555;font-size:10px">(${n})</span>` });
+        cells.push({ html: pctBarHtml(pct, AUDITOR_COLORS[aud], `(${n})`) });
       }
       return cells;
     });
@@ -2192,7 +2196,7 @@ function renderMetricsDistributions() {
     for (const aud of AUDITOR_KEYS) {
       const total = byAud[aud].yes + byAud[aud].no;
       const pct = total > 0 ? (byAud[aud].yes / total * 100) : 0;
-      rows[0].push({ html: barHtml(pct, 100, AUDITOR_COLORS[aud]).replace(pct.toFixed(2), pct.toFixed(0) + '%') + ` <span style="color:#555;font-size:10px">(${byAud[aud].yes}/${total})</span>` });
+      rows[0].push({ html: pctBarHtml(pct, AUDITOR_COLORS[aud], `(${byAud[aud].yes}/${total})`) });
     }
     alEl.appendChild(makeTable(['', ...AUDITOR_KEYS], rows));
   }
