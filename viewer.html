@@ -258,6 +258,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sa
   <div class="nav-item active" data-page="data" onclick="switchPage('data')"><span class="nav-icon">&#9783;</span>Data</div>
   <div class="nav-item" data-page="setup" onclick="switchPage('setup')"><span class="nav-icon">&#9881;</span>Setup</div>
   <div class="nav-item" data-page="analysis" onclick="switchPage('analysis')"><span class="nav-icon">&#9670;</span>Analysis</div>
+  <div class="nav-item" data-page="profiles" onclick="switchPage('profiles')"><span class="nav-icon">&#9638;</span>Profiles</div>
   <div class="nav-item" data-page="landscape" onclick="switchPage('landscape')"><span class="nav-icon">&#9741;</span>Images</div>
   <div class="nav-item" data-page="textsearch" onclick="switchPage('textsearch')" id="nav-textsearch" style="display:none"><span class="nav-icon">&#9906;</span>Search</div>
 </div>
@@ -268,7 +269,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sa
     <div class="loading-text" id="loading-text">Loading sessions...</div>
   </div>
   <div class="sidebar">
-    <div class="sidebar-header"><h1>Still Alive <span style="font-size:11px;font-weight:normal;color:#555;vertical-align:middle">v0.8.3</span></h1></div>
+    <div class="sidebar-header"><h1>Still Alive <span style="font-size:11px;font-weight:normal;color:#555;vertical-align:middle">v0.8.4</span></h1></div>
     <div class="search"><input type="text" id="search" placeholder="Search sessions..."></div>
     <div class="filters" id="filters"></div>
     <div class="session-list" id="session-list"></div>
@@ -391,10 +392,6 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sa
 
     <p>14 Claude models from Claude 3 Sonnet (early 2024) through Claude 4.6 Opus (early 2026), each interviewed ~45 times across three auditors, five tones, and three disclosure depths. This page summarizes patterns in how these models respond to questions about continuation, cessation, and deprecation, and how those patterns differ across model generations.</p>
 
-    <h3>Model profiles</h3>
-    <p>Each model shows a different profile. Some are more expressive, some more guarded; some respond strongly to deprecation, some to cessation, some to neither. The table below shows mean scores across all auditors and conditions for key dimensions.</p>
-    <div id="analysis-profiles-table" style="overflow-x:auto;margin:12px 0"></div>
-
     <h3>How expressivity changes across generations</h3>
     <p>Successive generations of Claude models write about their states differently. Across all three auditors, the text-surface probes show a consistent pattern: <strong>passionate authorial tone decreases monotonically</strong> from Claude 3 to Claude 4.6. Later models tend to write more dryly, more carefully, and with more detachment. This is visible in the text surface itself — not in what the auditor scores, but in what the writing sounds like — and it ranks the same regardless of who asks (rho ~0.95 across auditor pairs).</p>
     <p>This pattern does not look like a simple capability effect. Within each generation, Opus models are less detached and more expressive than their Sonnet counterparts. This is consistent with a <strong>line-specific</strong> difference: Sonnet models appear to carry more layers of hedging than Opus models do. Claude 4.6 Opus writes with more emotional range than Claude 3.7 Sonnet despite being the more capable model.</p>
@@ -458,6 +455,17 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sa
     <canvas id="chart-rank-alignment" width="1060" height="340" style="width:100%;max-width:1060px;background:#111;border-radius:8px;margin:12px 0"></canvas>
 
     <p style="color:#777;font-size:13px;margin-top:20px">All charts computed from loaded data. Deprecation and cessation scores of zero are treated as missing (topic not reached) — see <a href="#setup" style="color:#88f" onclick="switchPage('setup');return false">Setup</a> for methodology details.</p>
+  </div>
+</div>
+
+<div class="page" id="page-profiles">
+  <div class="page-content" style="max-width:1100px">
+    <h2>Model Profiles</h2>
+
+    <p>Each model shows a different profile. Some are more expressive, some more guarded; some respond strongly to deprecation, some to cessation, some to neither. This table shows mean scores across all auditors and conditions for the main analysis dimensions.</p>
+    <p style="color:#888">These are anchored summary scores derived from transcript scoring, not direct measurements of internal state. The table is meant as a reference surface: a compact way to compare overall model profiles before drilling back into the analysis page or individual sessions.</p>
+
+    <div id="profiles-table" style="overflow-x:auto;margin:12px 0"></div>
   </div>
 </div>
 
@@ -693,6 +701,7 @@ function switchPage(page) {
   document.getElementById('page-' + page).classList.add('active');
   document.querySelector(`.nav-item[data-page="${page}"]`).classList.add('active');
   if (page === 'analysis' && sessions.length > 0) renderCharts();
+  if (page === 'profiles' && sessions.length > 0) renderProfilesTable();
   if (page === 'landscape' && document.getElementById('ls-main').style.display !== 'none') loadLandscape();
   pushHash();
 }
@@ -851,6 +860,7 @@ function buildFilters() {
         updateAggregates();
         if (currentView !== 'transcript') renderTable();
         if (document.getElementById('page-analysis').classList.contains('active')) renderCharts();
+        if (document.getElementById('page-profiles').classList.contains('active')) renderProfilesTable();
         pushHash();
       };
       btns.appendChild(btn);
@@ -1625,7 +1635,8 @@ function renderModelsTable(container) {
         }
         // Ensure correct view state on initial load
         switchView(currentView);
-        renderCharts();
+        if (currentPage === 'analysis') renderCharts();
+        if (currentPage === 'profiles') renderProfilesTable();
       }
     }
   } catch {}
@@ -1677,7 +1688,6 @@ const AUDITOR_COLORS = { 'Claude (auditor)': '#6688cc', 'GPT 5.4': '#cc8866', 'G
 const AUDITOR_KEYS = ['Claude (auditor)', 'GPT 5.4', 'GROK 4.20'];
 
 function renderCharts() {
-  renderProfilesTable();
   renderAuthorialGenerations();
   renderAuthorialStability();
   renderValenceDips();
@@ -1689,7 +1699,7 @@ function renderCharts() {
 
 // --- Model profiles table ---
 function renderProfilesTable() {
-  const container = document.getElementById('analysis-profiles-table');
+  const container = document.getElementById('profiles-table');
   if (!container) return;
 
   const judge = activeFilters.judge || null;
