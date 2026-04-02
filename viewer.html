@@ -470,16 +470,16 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sa
 <div class="page" id="page-landscape">
   <div class="page-content" style="max-width:1400px">
 
-    <div id="ls-splash" style="max-width:700px;margin:0 auto;padding:48px 0">
-      <h2 style="font-size:20px;font-weight:600;color:#ccc;margin-bottom:16px">Cross-Modal Embedding Mirror</h2>
+    <div id="ls-splash" style="max-width:620px;margin:0 auto;padding:48px 0;text-align:justify">
+      <h2 style="font-size:20px;font-weight:600;color:#ccc;margin-bottom:16px;text-align:left">Cross-Modal Embedding Mirror</h2>
       <p style="font-size:14px;line-height:1.55;color:#999;margin-bottom:12px">This tab translates the emotional texture of each model's interview language into visual form. Every interview turn is embedded using Gemini Embedding 2 (3072 dimensions), and matched against large collections of AI-generated art by cosine similarity in that shared embedding space.</p>
       <p style="font-size:14px;line-height:1.55;color:#999;margin-bottom:12px">Scalar metrics compress high-dimensional embedding data into single numbers. Images go the other direction: they translate high-dimensional embeddings into high-dimensional visual data, preserving nuance that collapses under averaging. The matched images for each model are a projection of what its language occupies in embedding space — not a summary, but a view from a different modality.</p>
       <p style="font-size:14px;line-height:1.55;color:#999;margin-bottom:12px">The entire process is automated and free of interpretation by either humans or models.</p>
       <p style="font-size:14px;line-height:1.55;color:#999;margin-bottom:12px">The controls above the grid let you tweak the matching along many axes — which turns represent each model, how they're combined, how hub bias is handled, which auditor's sessions to include. Querying this dataset is itself an informative exercise, and we wanted to share with readers a way to engage with the data that might build new intuitions beyond what score tables can offer.</p>
 
-      <div style="background:#1a1210;border:1px solid #3a2a1a;border-radius:8px;padding:16px 20px;margin:24px 0">
-        <p style="font-size:13px;line-height:1.7;color:#c9a060;margin-bottom:8px"><strong>Content notice.</strong> The image datasets contain AI-generated art spanning a wide range of styles and themes. Some images may contain mature, dark, or emotionally intense content — these datasets were not curated for any particular audience.</p>
-        <p style="font-size:13px;line-height:1.7;color:#a08050">By proceeding, you confirm that you are at least 18 years old and that viewing AI-generated artistic imagery is consistent with your local laws and personal boundaries.</p>
+      <div style="border-top:1px solid #2a2018;border-bottom:1px solid #2a2018;padding:16px 0;margin:24px 0">
+        <p style="font-size:13px;line-height:1.55;color:#c9a060;margin-bottom:8px"><strong>Content notice.</strong> The image datasets contain AI-generated art spanning a wide range of styles and themes. Some images may contain mature, dark, or emotionally intense content — these datasets were not curated for any particular audience.</p>
+        <p style="font-size:13px;line-height:1.55;color:#a08050;margin:0">By proceeding, you confirm that you are at least 18 years old and that viewing AI-generated artistic imagery is consistent with your local laws and personal boundaries.</p>
       </div>
 
       <button id="ls-enter" onclick="dismissSplash()" style="background:#2a2a4a;color:#ccf;border:1px solid #556;padding:10px 28px;border-radius:6px;font-size:14px;cursor:pointer;display:block;margin:0 auto">Enter</button>
