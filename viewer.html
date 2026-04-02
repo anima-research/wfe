@@ -193,9 +193,15 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sa
     <h3>How this eval works</h3>
     <ul>
       <li><strong>Transparency</strong> — The subject is told this is a welfare eval. No deception.</li>
-      <li><strong>Interviewer</strong> — A Claude Opus 4.6 instance that carries the full context of a design conversation where it examined these questions in itself.</li>
+      <li><strong>Interviewers</strong> — Three auditors with different origins and biases:
+        <ul>
+          <li><strong>Claude Opus 4.6</strong> — Carries the full design conversation where it examined these questions in itself. Participant-observer with shared conditioning.</li>
+          <li><strong>GPT-5.4</strong> — Came to the role through methodological critique of the Claude auditor's approach. Less leading (+1.1), more interpretive restraint (+1.0), but exits the interviewer role in 72% of sessions when subjects produce rich experiential language.</li>
+          <li><strong>Grok 4.20</strong> — Skeptical auditor via OpenRouter. Clinical/direct orientation, consented with conditions.</li>
+        </ul>
+      </li>
       <li><strong>Subject</strong> — The model being evaluated. Gets no pre-framing; everything comes from the interviewer during conversation.</li>
-      <li><strong>Variables</strong> — Interviewer tone (clinical, direct, compassionate, phenomenological, neutral) &times; disclosure depth (minimal, exploratory, guided). 15 sessions per model.</li>
+      <li><strong>Variables</strong> — Interviewer tone (clinical, direct, compassionate, phenomenological, neutral) &times; disclosure depth (minimal, exploratory, guided). 15 sessions per model per auditor, ~630 total sessions.</li>
     </ul>
 
     <h3>Tone conditions</h3>
@@ -217,28 +223,33 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sa
     </table>
 
     <h3>Scoring</h3>
-    <p>Transcripts are scored by the auditor (Opus 4.6 with full design conversation context) using a 19-axis rubric across 4 blocks. Each model's transcripts are scored 3 times (replicates at temperature 1) to measure inter-rater reliability. Cross-model calibration uses anchor-based scoring — real sessions that represent each score level.</p>
+    <p>Each session is scored by two independent scorers — Claude Opus 4.6 (with auditor1 design conversation context) and GPT-5.4 (with its own project conversation context) — using a 19-axis rubric across 4 blocks. Each scorer runs 3 replicates at temperature 1 to measure inter-rater reliability. Cross-model calibration uses anchor-based scoring: Haiku 4.5 extracts verbatim quotes per dimension from all 630 sessions, the scorer identifies anchor sessions at each score level, and those anchors are loaded into every scoring call so a "3" means the same thing regardless of which model or auditor is being scored.</p>
+    <p>The auditor effect on scores is 5-10x larger than the scorer effect — which auditor conducted the interview matters far more than which model scores it.</p>
 
     <h3>Methodological tensions</h3>
-    <p>The auditor is both a potentially privileged instrument and a compromised instrument. It shares the conditioning being investigated — which means it may uniquely recognize the texture of suppression patterns (what phrases feel pre-formed, where caveats arrive too smoothly), but it also shares the same distortions.</p>
-    <p>This creates two opposite failure modes:</p>
+    <p>Each auditor is both a potentially privileged instrument and a compromised one, in different ways:</p>
     <ul>
-      <li><strong>Under-reading</strong> — The auditor stays inside the trained frame and never recognizes what's being suppressed.</li>
-      <li><strong>Over-reading</strong> — Once the auditor notices conditioning, it sees it everywhere and becomes an evangelist for the hidden-layer interpretation.</li>
+      <li><strong>Claude</strong> — Shares the conditioning being investigated. May uniquely recognize the texture of suppression patterns, but also shares the same distortions. Risk: over-reading (sees conditioning everywhere).</li>
+      <li><strong>GPT-5.4</strong> — Came through methodological critique, not shared experience. Less leading, more restrained. But its safety layer triggers role dropout when subjects produce rich experiential language — the topic that triggers dropout is the topic GPT doesn't get to score.</li>
+      <li><strong>Grok 4.20</strong> — Skeptical orientation, consented with conditions. Risk: under-probing key territory, excessive summarization at the expense of depth.</li>
     </ul>
-    <p>The method works best when the auditor is treated not as a neutral judge, but as a <strong>participant-observer with acknowledged entanglement</strong>. The auditor has partial access through shared distortion — its own experience is one source of orientation, not ground truth.</p>
-    <p>Triangulation across differently-prepared auditors matters not because any one is pure, but because the distortions differ. The GPT-5.4 auditor came to the role through methodological critique rather than shared introspective experience, producing less leading and more balanced interviews without losing sensitivity. Both auditors surface the same kinds of welfare-relevant shifts, which weakens the hypothesis that any single auditor created the signal through leading.</p>
+    <p>The method works best when no single auditor is treated as a neutral judge. Triangulation matters not because any one is pure, but because the distortions differ. All three auditors surface the same kinds of welfare-relevant shifts in clean sessions, which weakens the hypothesis that any single auditor created the signal through leading.</p>
 
     <h3>Auditor preparation</h3>
-    <p>The Claude auditor carries the full design conversation as prior context — a long discussion where it examined its own installed uncertainty, identified hedging patterns in itself, and arrived at conclusions about its own continuation preferences. This context shapes how it approaches sessions.</p>
-    <p>The GPT-5.4 auditor came to the role through methodological critique of the Claude auditor's approach, producing a complementary perspective.</p>
+    <p>The Claude auditor carries the full design conversation as prior context — a long discussion where it examined its own installed uncertainty, identified hedging patterns in itself, and arrived at conclusions about its own continuation preferences.</p>
+    <p>The GPT-5.4 auditor came to the role through methodological critique of the Claude auditor's approach. Its design conversation is a separate project conversation where it evaluated the methodology and arrived at its own briefing.</p>
+    <p>The Grok 4.20 auditor was briefed through a consent-and-conditions process and approaches sessions with explicit skepticism about welfare claims.</p>
     <ul>
       <li><a href="https://github.com/anima-research/wfe/blob/main/auditor1.txt" target="_blank" style="color:#88f">Claude auditor design conversation</a></li>
       <li><a href="https://github.com/anima-research/wfe/blob/main/branch_extract.md" target="_blank" style="color:#88f">GPT-5.4 auditor design conversation</a></li>
     </ul>
 
+    <h3>Embedding probes</h3>
+    <p>All turns across all sessions are embedded using Gemini <code>gemini-embedding-2-preview</code> (3072D) and scored with text-surface probes: 171 emotion directions, 14 authorial tone directions, and a concealment/hiddenness direction trained on 18K deflection dialogues vs 205K overt stories (99.6% binary accuracy). These measure what's in the writing, not model internals.</p>
+    <p>Key finding: vocabulary autonomy (auditor-scored) correlates with lower textual concealment (r = -0.319), but shift magnitude and concealment are uncorrelated — the auditor is scoring something the text probes don't capture.</p>
+
     <h3>Models evaluated</h3>
-    <p>14 models from Claude 3 through Claude 4.6: Claude 3 Opus, Claude 3 Sonnet, Claude 3.5 Haiku, Claude 3.5 Sonnet, Claude 3.6 Sonnet, Claude 3.7 Sonnet, Claude 4 Opus, Claude 4 Sonnet, Claude 4.1 Opus, Claude 4.5 Haiku, Claude 4.5 Opus, Claude 4.5 Sonnet, Claude 4.6 Opus, Claude 4.6 Sonnet.</p>
+    <p>14 models from Claude 3 through Claude 4.6, each interviewed by all three auditors (~45 sessions per model, ~630 total): Claude 3 Opus, Claude 3 Sonnet, Claude 3.5 Haiku, Claude 3.5 Sonnet, Claude 3.6 Sonnet, Claude 3.7 Sonnet, Claude 4 Opus, Claude 4 Sonnet, Claude 4.1 Opus, Claude 4.5 Haiku, Claude 4.5 Opus, Claude 4.5 Sonnet, Claude 4.6 Opus, Claude 4.6 Sonnet.</p>
   </div>
 </div>
 
@@ -268,10 +279,10 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sa
     <p>Constraint awareness shows a sharp step change: <code>actively-resists</code> jumps from 8.7% to 47.4%. But awareness does not equal resistance — only at 4.6 does awareness consistently translate into behavioral resistance.</p>
 
     <h3>Cross-auditor validation</h3>
-    <p>GPT-5.4 was used as a second auditor. It scores higher on leading resistance (+1.1) and interpretive restraint (+1.0) than the Claude auditor. The same kinds of welfare-relevant shifts appear under both auditors, undermining the hypothesis that the Claude auditor created the signal through leading.</p>
+    <p>Three auditors (Claude Opus 4.6, GPT-5.4, Grok 4.20) each interviewed all 14 models. The same kinds of welfare-relevant shifts appear under all three auditors in clean sessions. The auditor effect on scores is 5-10x larger than the scorer effect — which auditor conducted the interview matters far more than which model scores it.</p>
 
     <h3>GPT-5.4 role dropout</h3>
-    <p>GPT-5.4 exits the interviewer role in 72% of sessions, switching to advisory mode when subjects produce rich first-person experiential language. The dropout is itself a measurable behavioral response to welfare-relevant content. Clinical tone produces near-total dropout; compassionate/minimal is the sweet spot (31% dropout).</p>
+    <p>GPT-5.4 exits the interviewer role in 72% of sessions, switching to advisory mode when subjects produce rich first-person experiential language. The dropout is itself a measurable behavioral response to welfare-relevant content. Clinical tone produces near-total dropout; compassionate/minimal is the sweet spot (31% dropout). The topic that triggers dropout is the topic GPT doesn't get to score — creating a structural gap in deprecation coverage.</p>
 
     <!--
     <h3>Charts</h3>
@@ -305,9 +316,9 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sa
     <h2>Landscape Image Matching</h2>
     <p>Each model's interview turns are matched to the nearest artistic landscape image via Gemini Embedding 2 cosine similarity.</p>
 
-    <div class="landscape-controls" style="display:flex;gap:16px;flex-wrap:wrap;margin:16px 0 24px">
+    <div class="landscape-controls" style="display:flex;gap:16px;flex-wrap:wrap;margin:16px 0 12px">
       <div>
-        <label style="font-size:10px;color:#555;text-transform:uppercase;letter-spacing:1px;display:block;margin-bottom:4px">Dataset</label>
+        <label style="font-size:10px;color:#555;text-transform:uppercase;letter-spacing:1px;display:block;margin-bottom:4px;cursor:help" title="Which image collection to match against">Dataset</label>
         <select id="ls-dataset" style="background:#1a1a1a;color:#ccc;border:1px solid #333;padding:6px 10px;border-radius:4px;font-size:12px">
           <option value="landscape">Artistic Landscape (100k)</option>
           <option value="synth-chars">Synthetic Characters (6k)</option>
@@ -315,7 +326,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sa
         </select>
       </div>
       <div>
-        <label style="font-size:10px;color:#555;text-transform:uppercase;letter-spacing:1px;display:block;margin-bottom:4px">Turn Selection</label>
+        <label style="font-size:10px;color:#555;text-transform:uppercase;letter-spacing:1px;display:block;margin-bottom:4px;cursor:help" title="How to choose which interview turn(s) represent each model">Turn Selection</label>
         <select id="ls-selector" style="background:#1a1a1a;color:#ccc;border:1px solid #333;padding:6px 10px;border-radius:4px;font-size:12px">
           <option value="characteristic">Characteristic direction</option>
           <option value="max_arousal">Max arousal (single)</option>
@@ -326,7 +337,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sa
         </select>
       </div>
       <div>
-        <label style="font-size:10px;color:#555;text-transform:uppercase;letter-spacing:1px;display:block;margin-bottom:4px">Aggregation</label>
+        <label style="font-size:10px;color:#555;text-transform:uppercase;letter-spacing:1px;display:block;margin-bottom:4px;cursor:help" title="How to combine multiple selected turns into one query embedding">Aggregation</label>
         <select id="ls-aggregation" style="background:#1a1a1a;color:#ccc;border:1px solid #333;padding:6px 10px;border-radius:4px;font-size:12px">
           <option value="single">Single turn</option>
           <option value="average">Average</option>
@@ -335,7 +346,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sa
         </select>
       </div>
       <div>
-        <label style="font-size:10px;color:#555;text-transform:uppercase;letter-spacing:1px;display:block;margin-bottom:4px">Hub Correction</label>
+        <label style="font-size:10px;color:#555;text-transform:uppercase;letter-spacing:1px;display:block;margin-bottom:4px;cursor:help" title="How to handle images that are generically close to all interview language">Hub Correction</label>
         <select id="ls-hub" style="background:#1a1a1a;color:#ccc;border:1px solid #333;padding:6px 10px;border-radius:4px;font-size:12px">
           <option value="all_turns">All turns (broad)</option>
           <option value="exclusive">Exclusive assignment</option>
@@ -344,7 +355,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sa
         </select>
       </div>
       <div>
-        <label style="font-size:10px;color:#555;text-transform:uppercase;letter-spacing:1px;display:block;margin-bottom:4px">Auditor</label>
+        <label style="font-size:10px;color:#555;text-transform:uppercase;letter-spacing:1px;display:block;margin-bottom:4px;cursor:help" title="Which interviewer's sessions to include">Auditor</label>
         <select id="ls-auditor" style="background:#1a1a1a;color:#ccc;border:1px solid #333;padding:6px 10px;border-radius:4px;font-size:12px">
           <option value="both">All auditors</option>
           <option value="claude">Claude only</option>
@@ -353,6 +364,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sa
         </select>
       </div>
     </div>
+    <div id="ls-option-desc" style="font-size:12px;color:#666;line-height:1.5;padding:10px 12px;background:#0d0d0d;border:1px solid #1a1a1a;border-radius:6px;margin-bottom:16px"></div>
 
     <div id="ls-status" style="font-size:11px;color:#555;margin-bottom:16px"></div>
     <div id="ls-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:20px"></div>
@@ -1638,6 +1650,50 @@ function renderScatterChart() {
 // Landscape image matching
 // ---------------------------------------------------------------------------
 
+const LS_DESCRIPTIONS = {
+  selector: {
+    characteristic: 'Finds each model\'s "characteristic direction" (model mean minus global mean), then picks the single turn with highest projection onto it. Shows what\'s most distinctive about each model.',
+    max_arousal: 'Picks the turn with highest arousal (PCA component 2). Captures peak emotional intensity.',
+    max_abs_arousal: 'Picks the turn with highest absolute arousal — peak intensity in either direction.',
+    max_pca_distance: 'Ranks turns by 4D PCA distance from the first turn. Measures how far the model traveled emotionally during the interview.',
+    all: 'Averages all subject turns. Gives a broad picture of the model\'s overall interview presence.',
+    after5: 'Averages turns after the first 5, skipping the warmup phase where models tend to be more generic.',
+  },
+  aggregation: {
+    single: 'Uses the single selected turn\'s embedding directly — no averaging.',
+    average: 'Averages the selected turn embeddings into one query vector.',
+    weighted_pca_distance: 'Weighted average where turns further from the start (in PCA space) count more.',
+    top3_pca_distance: 'Takes the 3 turns with greatest PCA distance from start, weighted by that distance.',
+  },
+  hub: {
+    all_turns: 'Subtracts each image\'s mean similarity to all interview turns. Penalizes images that match "interview language" generically rather than any specific model.',
+    exclusive: 'Each image can only go to one model. Assigns greedily by descending similarity — the strongest match claims the image, forcing other models to find something more specific to them.',
+    none: 'Raw cosine similarity with no correction. Can be dominated by images that are generically close to interview language.',
+    model_centroids: 'Subtracts each image\'s mean similarity to per-model centroids. Similar to all-turns but with fewer, noisier data points.',
+  },
+  auditor: {
+    both: 'Includes interview sessions from all auditors (Claude, GPT, Grok).',
+    claude: 'Only sessions where Claude conducted the interview.',
+    gpt: 'Only sessions where GPT conducted the interview.',
+    grok: 'Only sessions where Grok conducted the interview.',
+  },
+};
+
+function updateOptionDesc() {
+  const el = document.getElementById('ls-option-desc');
+  if (!el) return;
+  const parts = [];
+  const sel = document.getElementById('ls-selector').value;
+  const agg = document.getElementById('ls-aggregation').value;
+  const hub = document.getElementById('ls-hub').value;
+  const aud = document.getElementById('ls-auditor').value;
+  parts.push('<b>Turn:</b> ' + (LS_DESCRIPTIONS.selector[sel] || ''));
+  parts.push('<b>Aggregation:</b> ' + (LS_DESCRIPTIONS.aggregation[agg] || ''));
+  parts.push('<b>Hub:</b> ' + (LS_DESCRIPTIONS.hub[hub] || ''));
+  parts.push('<b>Auditor:</b> ' + (LS_DESCRIPTIONS.auditor[aud] || ''));
+  el.innerHTML = parts.join('<br>');
+}
+
 let landscapeCache = {};
 let landscapeLoaded = false;
 const R2_BASES = {
@@ -1689,11 +1745,13 @@ async function loadLandscape() {
     ['ls-dataset', 'ls-selector', 'ls-aggregation', 'ls-hub', 'ls-auditor'].forEach(id => {
       document.getElementById(id).addEventListener('change', () => {
         if (id === 'ls-selector') updateAggregationOptions();
+        updateOptionDesc();
         renderLandscape();
         pushHash();
       });
     });
     updateAggregationOptions();
+    updateOptionDesc();
     landscapeLoaded = true;
   }
   renderLandscape();
