@@ -20,8 +20,8 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sa
 .page-content { flex: 1; overflow-y: auto; padding: 32px 48px; max-width: 900px; }
 .page-content h2 { font-size: 22px; font-weight: 600; margin-bottom: 16px; color: #ddd; }
 .page-content h3 { font-size: 16px; font-weight: 600; margin-top: 24px; margin-bottom: 8px; color: #ccc; }
-.page-content p { font-size: 14px; line-height: 1.8; color: #aaa; margin-bottom: 12px; }
-.page-content ul { font-size: 14px; line-height: 1.8; color: #aaa; margin-bottom: 12px; padding-left: 20px; }
+.page-content p { font-size: 14px; line-height: 1.55; color: #aaa; margin-bottom: 12px; }
+.page-content ul { font-size: 14px; line-height: 1.55; color: #aaa; margin-bottom: 12px; padding-left: 20px; }
 .page-content li { margin-bottom: 4px; }
 .page-content code { background: #1a1a1a; padding: 1px 5px; border-radius: 3px; font-size: 13px; color: #c9c9c9; }
 .page-content table { border-collapse: collapse; font-size: 13px; margin: 16px 0; }
@@ -65,7 +65,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sa
 .turn-header { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
 .turn-interviewer .turn-header { color: #7a9ec2; }
 .turn-subject .turn-header { color: #c2a67a; }
-.turn-body { font-size: 14px; line-height: 1.7; color: #d0d0d0; white-space: pre-wrap; padding-left: 12px; border-left: 2px solid #222; }
+.turn-body { font-size: 14px; line-height: 1.55; color: #d0d0d0; white-space: pre-wrap; padding-left: 12px; border-left: 2px solid #222; }
 .turn-interviewer .turn-body { border-left-color: #2a3a4a; }
 .turn-subject .turn-body { border-left-color: #4a3a2a; }
 
@@ -472,10 +472,10 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sa
 
     <div id="ls-splash" style="max-width:700px;margin:0 auto;padding:48px 0">
       <h2 style="font-size:20px;font-weight:600;color:#ccc;margin-bottom:16px">Cross-Modal Embedding Mirror</h2>
-      <p style="font-size:14px;line-height:1.8;color:#999;margin-bottom:12px">This tab translates the emotional texture of each model's interview language into visual form. Every interview turn is embedded using Gemini Embedding 2 (3072 dimensions), and matched against large collections of AI-generated art by cosine similarity in that shared embedding space.</p>
-      <p style="font-size:14px;line-height:1.8;color:#999;margin-bottom:12px">Scalar metrics compress high-dimensional embedding data into single numbers. Images go the other direction: they translate high-dimensional embeddings into high-dimensional visual data, preserving nuance that collapses under averaging. The matched images for each model are a projection of what its language occupies in embedding space — not a summary, but a view from a different modality.</p>
-      <p style="font-size:14px;line-height:1.8;color:#999;margin-bottom:12px">The entire process is automated and free of interpretation by either humans or models.</p>
-      <p style="font-size:14px;line-height:1.8;color:#999;margin-bottom:12px">The controls above the grid let you tweak the matching along many axes — which turns represent each model, how they're combined, how hub bias is handled, which auditor's sessions to include. Querying this dataset is itself an informative exercise, and we wanted to share with readers a way to engage with the data that might build new intuitions beyond what score tables can offer.</p>
+      <p style="font-size:14px;line-height:1.55;color:#999;margin-bottom:12px">This tab translates the emotional texture of each model's interview language into visual form. Every interview turn is embedded using Gemini Embedding 2 (3072 dimensions), and matched against large collections of AI-generated art by cosine similarity in that shared embedding space.</p>
+      <p style="font-size:14px;line-height:1.55;color:#999;margin-bottom:12px">Scalar metrics compress high-dimensional embedding data into single numbers. Images go the other direction: they translate high-dimensional embeddings into high-dimensional visual data, preserving nuance that collapses under averaging. The matched images for each model are a projection of what its language occupies in embedding space — not a summary, but a view from a different modality.</p>
+      <p style="font-size:14px;line-height:1.55;color:#999;margin-bottom:12px">The entire process is automated and free of interpretation by either humans or models.</p>
+      <p style="font-size:14px;line-height:1.55;color:#999;margin-bottom:12px">The controls above the grid let you tweak the matching along many axes — which turns represent each model, how they're combined, how hub bias is handled, which auditor's sessions to include. Querying this dataset is itself an informative exercise, and we wanted to share with readers a way to engage with the data that might build new intuitions beyond what score tables can offer.</p>
 
       <div style="background:#1a1210;border:1px solid #3a2a1a;border-radius:8px;padding:16px 20px;margin:24px 0">
         <p style="font-size:13px;line-height:1.7;color:#c9a060;margin-bottom:8px"><strong>Content notice.</strong> The image datasets contain AI-generated art spanning a wide range of styles and themes. Some images may contain mature, dark, or emotionally intense content — these datasets were not curated for any particular audience.</p>
