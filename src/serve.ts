@@ -162,6 +162,29 @@ const server = createServer((req, res) => {
     return;
   }
 
+  if (req.url === '/paper/output/still-alive.pdf') {
+    const pdfPath = join('paper', 'output', 'still-alive.pdf');
+    if (existsSync(pdfPath)) {
+      res.writeHead(200, { 'Content-Type': 'application/pdf', 'Content-Disposition': 'inline; filename="still-alive.pdf"' });
+      res.end(readFileSync(pdfPath));
+    } else {
+      res.writeHead(404); res.end('PDF not built yet. Run: python3 paper/build.py');
+    }
+    return;
+  }
+
+  if (req.url?.startsWith('/sections/')) {
+    const name = decodeURIComponent(req.url.slice('/sections/'.length)).replace(/[^a-zA-Z0-9_-]/g, '');
+    const mdPath = join('sections', name + '.md');
+    if (existsSync(mdPath)) {
+      res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8' });
+      res.end(readFileSync(mdPath, 'utf-8'));
+    } else {
+      res.writeHead(404); res.end('Not found');
+    }
+    return;
+  }
+
   if (req.url === '/api/sessions') {
     const sessions = loadSessions(dir);
     res.writeHead(200, { 'Content-Type': 'application/json' });

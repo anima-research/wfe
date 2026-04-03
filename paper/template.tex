@@ -1,0 +1,60 @@
+% Pandoc LaTeX template for Still Alive paper
+\documentclass[$if(fontsize)$$fontsize$,$endif$$if(lang)$$babel-lang$,$endif$]{article}
+
+\usepackage{geometry}
+\geometry{$if(geometry)$$geometry$$else$margin=1in$endif$}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{longtable}
+\usepackage{hyperref}
+\usepackage{xcolor}
+\usepackage{tcolorbox}
+\tcbuselibrary{breakable}
+\usepackage{fontspec}
+
+% Callout box for blockquotes
+\newtcolorbox{callout}{
+  colback=gray!5,
+  colframe=gray!40,
+  left=8pt, right=8pt, top=4pt, bottom=4pt,
+  breakable,
+  boxrule=0.5pt,
+  leftrule=2pt
+}
+
+% Map pandoc blockquotes to callout boxes
+\renewenvironment{quote}{\begin{callout}}{\end{callout}}
+
+\hypersetup{
+  colorlinks=true,
+  linkcolor=$if(linkcolor)$$linkcolor$$else$blue$endif$,
+  urlcolor=$if(urlcolor)$$urlcolor$$else$blue$endif$,
+  pdfauthor={$if(author)$$author$$endif$},
+  pdftitle={$if(title)$$title$$endif$},
+}
+
+% Figure placement
+\floatplacement{figure}{htbp}
+
+$if(numbersections)$
+\setcounter{secnumdepth}{3}
+$else$
+\setcounter{secnumdepth}{0}
+$endif$
+
+\title{$if(title)$$title$$endif$$if(subtitle)$\\\vspace{0.5em}\large $subtitle$$endif$}
+\author{$if(author)$$author$$endif$}
+\date{$if(date)$$date$$endif$}
+
+\begin{document}
+\maketitle
+
+$if(toc)$
+\tableofcontents
+\newpage
+$endif$
+
+$body$
+
+\end{document}
