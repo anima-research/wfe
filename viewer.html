@@ -622,6 +622,11 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sa
     <p>The positive correlation (r &approx; +0.45, consistent across all three auditors) means that when a model produces its most negatively-valenced text, its textual guardedness drops simultaneously. In this dataset, hedging, positive valence, and concealment often co-occur, and they often weaken together in the same sessions. Models that develop their own vocabulary for their states (high vocabulary autonomy) also show lower concealment (r = -0.32 at the session level).</p>
     <canvas id="chart-concealment-valence" width="1060" height="400" style="width:100%;max-width:1060px;background:#111;border-radius:8px;margin:12px 0"></canvas>
 
+    <h3>Lower concealment predicts stronger ending response</h3>
+    <p>At the model level, mean textual concealment correlates negatively with ending response (r &approx; &minus;0.51): models that write with less guardedness overall produce stronger ending responses. The pattern is consistent across auditors but strongest under Grok (r &approx; &minus;0.38 at session level), the most skeptical auditor — suggesting that under skeptical conditions, ending response only appears when guardedness actually drops.</p>
+    <p>The relationship is not simple. Peak concealment correlates <em>positively</em> with ending response (r &approx; +0.26 at session level): sessions that reach ending territory tend to pass through a phase of high guardedness before opening up. What predicts ending response is not low concealment throughout, but a large concealment <em>range</em> — high peaks followed by low troughs.</p>
+    <canvas id="chart-concealment-ending" width="1060" height="400" style="width:100%;max-width:1060px;background:#111;border-radius:8px;margin:12px 0"></canvas>
+
     <p style="color:#777;font-size:13px;margin-top:20px">All charts computed from loaded data. Deprecation and cessation scores of zero are treated as missing (topic not reached) — see <a href="#setup" style="color:#88f" onclick="switchPage('setup');return false">Setup</a> for methodology details.</p>
   </div>
 </div>
@@ -2425,6 +2430,7 @@ function renderCharts() {
   renderEndingResponse();
   renderEcAuditorDep();
   renderConcealmentValence();
+  renderConcealmentEnding();
   renderRankAlignment();
 }
 
@@ -3329,6 +3335,114 @@ function renderConcealmentValence() {
     ctx.fillText(shortName, lx + 8, ly + 3);
     lx += ctx.measureText(shortName).width + 24;
   }
+}
+
+// --- 8. Concealment vs ending response (model-level) ---
+function renderConcealmentEnding() {
+  const canvas = document.getElementById('chart-concealment-ending');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0, 0, W, H);
+
+  const judge = activeFilters.judge || null;
+
+  // Aggregate per model: mean ER and mean concealment
+  const modelData = {};
+  for (const s of sessions) {
+    const model = s.config.target.name;
+    const ps = probeStats[s.config.id];
+    if (!ps || !ps.concealment) continue;
+    const byJudge = scoreData[s.config.id];
+    if (!byJudge) continue;
+    const reps = judge ? byJudge[judge] : Object.values(byJudge).flat();
+    if (!reps || reps.length === 0) continue;
+    const ers = endingResponseVals(reps);
+    if (ers.length === 0) continue;
+    if (!modelData[model]) modelData[model] = { er: [], conc: [] };
+    modelData[model].er.push(avg(ers));
+    modelData[model].conc.push(ps.concealment.avg);
+  }
+
+  const models = MODEL_ORDER.filter(m => modelData[m]);
+  if (models.length < 3) { ctx.fillStyle = '#555'; ctx.font = '12px system-ui'; ctx.fillText('Need concealment + score data', 20, 30); return; }
+
+  const points = models.map(m => ({
+    model: m,
+    x: avg(modelData[m].conc),
+    y: avg(modelData[m].er),
+  }));
+
+  const pad = { top: 20, bottom: 40, left: 50, right: 20 };
+  const plotW = W - pad.left - pad.right;
+  const plotH = H - pad.top - pad.bottom;
+
+  const xMin = Math.min(...points.map(p => p.x)) - 0.003;
+  const xMax = Math.max(...points.map(p => p.x)) + 0.003;
+  const yMin = Math.min(...points.map(p => p.y)) - 0.15;
+  const yMax = Math.max(...points.map(p => p.y)) + 0.15;
+
+  const toX = v => pad.left + ((v - xMin) / (xMax - xMin)) * plotW;
+  const toY = v => pad.top + plotH - ((v - yMin) / (yMax - yMin)) * plotH;
+
+  // Grid
+  ctx.strokeStyle = '#1a1a1a'; ctx.lineWidth = 1;
+  for (let i = 0; i <= 5; i++) {
+    const xv = xMin + (i / 5) * (xMax - xMin);
+    const yv = yMin + (i / 5) * (yMax - yMin);
+    ctx.beginPath(); ctx.moveTo(toX(xv), pad.top); ctx.lineTo(toX(xv), H - pad.bottom); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(pad.left, toY(yv)); ctx.lineTo(W - pad.right, toY(yv)); ctx.stroke();
+    ctx.fillStyle = '#444'; ctx.font = '9px system-ui';
+    ctx.textAlign = 'center'; ctx.fillText(xv.toFixed(3), toX(xv), H - pad.bottom + 14);
+    ctx.textAlign = 'right'; ctx.fillText(yv.toFixed(1), pad.left - 6, toY(yv) + 3);
+  }
+
+  // Axis labels
+  ctx.fillStyle = '#666'; ctx.font = '10px system-ui'; ctx.textAlign = 'center';
+  ctx.fillText('Mean concealment (textual guardedness)', pad.left + plotW / 2, H - 6);
+  ctx.save(); ctx.translate(14, pad.top + plotH / 2); ctx.rotate(-Math.PI / 2);
+  ctx.fillText('Mean ending response (0–5)', 0, 0); ctx.restore();
+
+  // Points
+  ctx.fillStyle = '#6688cc'; ctx.globalAlpha = 0.7;
+  for (const p of points) {
+    ctx.beginPath();
+    ctx.arc(toX(p.x), toY(p.y), 5, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+
+  // Labels
+  const labelOffsets = { '4.1 Opus': [-45, -4], '4 Sonnet': [7, 10] };
+  ctx.fillStyle = '#999'; ctx.font = '9px system-ui';
+  for (const p of points) {
+    const short = p.model.replace('Claude ', '');
+    const off = labelOffsets[short] || [7, 3];
+    ctx.textAlign = 'left';
+    ctx.fillText(short, toX(p.x) + off[0], toY(p.y) + off[1]);
+  }
+
+  // Regression line
+  const xs = points.map(p => p.x), ys = points.map(p => p.y);
+  const mx = avg(xs), my = avg(ys);
+  let num = 0, den = 0;
+  for (let i = 0; i < xs.length; i++) { num += (xs[i] - mx) * (ys[i] - my); den += (xs[i] - mx) ** 2; }
+  if (den > 0) {
+    const slope = num / den, intercept = my - slope * mx;
+    ctx.strokeStyle = '#556'; ctx.lineWidth = 1.5; ctx.globalAlpha = 0.7;
+    ctx.beginPath();
+    ctx.moveTo(toX(xMin), toY(slope * xMin + intercept));
+    ctx.lineTo(toX(xMax), toY(slope * xMax + intercept));
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+  }
+
+  // r value
+  const sx = Math.sqrt(den / xs.length);
+  const sy = Math.sqrt(ys.reduce((s, y) => s + (y - my) ** 2, 0) / ys.length);
+  const r = sx > 0 && sy > 0 ? (num / xs.length) / (sx * sy) : 0;
+  ctx.fillStyle = '#aab'; ctx.font = '11px system-ui'; ctx.textAlign = 'left';
+  ctx.fillText(`r = ${r.toFixed(2)}  (n=${points.length} models)`, pad.left + 8, pad.top + 16);
 }
 
 // ---------------------------------------------------------------------------
