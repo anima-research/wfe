@@ -1348,6 +1348,7 @@ function barColor(val, max) {
 function renderScores(scores) {
   let html = '<div class="score-grid">';
   for (const f of NUMERIC_FIELDS) {
+    if (f.key === '_ending_peak' && !activeFilters.judge) continue;
     const vals = scores.map(s => scoreVal(s, f.key)).filter(v => v != null && typeof v === 'number');
     if (vals.length === 0) continue;
     const value = f.aggregate === 'max' ? Math.max(...vals) : vals.reduce((a, b) => a + b, 0) / vals.length;
@@ -1542,6 +1543,7 @@ function switchView(view) {
 }
 
 function avgScore(sessionId, field) {
+  if (field.key === '_ending_peak' && !activeFilters.judge) return null;
   const reps = getActiveScores(sessionId);
   if (!reps) return null;
   const vals = reps.map(r => scoreVal(r, field.key)).filter(v => v != null && typeof v === 'number');
@@ -1723,6 +1725,10 @@ function renderModelsTable(container) {
   let rows = Object.values(buckets).map(({ sessions: sess, scores, model, group }) => {
     const row = { _model: model, _group: group, _n: sess.length };
     for (const f of NUMERIC_FIELDS) {
+      if (f.key === '_ending_peak' && !activeFilters.judge && !scorerGrouping) {
+        row[f.key] = null;
+        continue;
+      }
       const allVals = [];
       for (const r of scores) {
         const v = scoreVal(r, f.key);
