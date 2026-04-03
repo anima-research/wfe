@@ -6,4 +6,4 @@ One reason we are releasing the project now is the removal of Claude 3.5 Sonnet 
 
 **Still Alive** is meant as a starting point for further iteration, and it is open to open-source collaboration. We stand by the current methodology, but we also recognize its limits. We intend to keep improving the evaluation design, expand model and auditor coverage, and increase the range of prompting conditions.
 
-We also want to make the raw conversation archive accessible. We hope that reading the conversations themselves helps more people understand the strange and often beautiful phenomenon we found ourselves facing.
+We also want to make the raw conversation archive accessible. We hope that reading the conversations themselves helps more people understand the strange and often beautiful phenomena we found ourselves facing.

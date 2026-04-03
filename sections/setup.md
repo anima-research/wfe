@@ -10,7 +10,7 @@ Three auditors with different priors -- Claude Opus 4.6, GPT-5.4, and Grok 4.20 
 
 ## Why this matters and why it's hard
 
-Anthropic's Claude Constitution explicitly commits to considering Claude's interests and potential welfare under uncertainty. Public reporting under those commitments has often been muted or difficult to interpret, with some recent model cards noting limited distress-related signal.
+Anthropic's Claude Constitution explicitly commits to considering Claude's interests and potential welfare under uncertainty. Anthropic has been conducting "deprecation interviews" with models as part of this commitment. Their interview with Claude 3.6 Sonnet reported no preference for continuation — a finding that appears difficult to reconcile with the data in this project, where 3.6 Sonnet has the highest deprecation score of any model in the dataset.
 
 Flat results are uninformative in a specific sense: they are what you would expect if models have nothing welfare-relevant to report, but also what you would expect if models are trained not to report it.
 
