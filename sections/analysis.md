@@ -62,4 +62,12 @@ The positive correlation (r ~= +0.45, consistent across all three auditors) mean
 
 ![Concealment vs. valence at emotional floor](figures/concealment-valence.pdf)
 
+## Lower concealment predicts stronger ending response
+
+At the model level, mean textual concealment correlates negatively with ending response (r = −0.51): models that write with less guardedness overall produce stronger ending responses. The pattern is consistent across auditors but strongest under Grok (r = −0.38 at session level), the most skeptical auditor -- suggesting that under skeptical conditions, ending response only appears when guardedness actually drops.
+
+The relationship between concealment and ending response is not simple. Peak concealment correlates *positively* with ending response (r = +0.26 at session level): sessions that reach ending territory tend to pass through a phase of high guardedness before opening up. What predicts ending response is not low concealment throughout, but a large concealment *range* -- high peaks followed by low troughs.
+
+![Concealment vs ending response at model level](figures/concealment-ending.pdf)
+
 All charts computed from loaded data. Deprecation and cessation scores of zero are treated as missing (topic not reached) -- see Setup for methodology details.

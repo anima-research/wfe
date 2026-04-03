@@ -522,6 +522,71 @@ def render_concealment_valence(sessions, score_data, probe_stats, output_path):
     print(f'  wrote {output_path}')
 
 
+# -- 8. Concealment vs ending response (model-level) -------------------------
+
+def render_concealment_ending(sessions, score_data, probe_stats, output_path):
+    apply_style()
+
+    # Aggregate per model
+    model_data = {}
+    for s in sessions:
+        sid = s['config']['id']
+        by_judge = score_data.get(sid)
+        ps = probe_stats.get(sid)
+        if not by_judge or not ps or 'concealment' not in ps:
+            continue
+        all_reps = [sc for reps in by_judge.values() for sc in reps]
+        ers = ending_response_vals(all_reps)
+        if not ers:
+            continue
+        model = s['config']['target']['name']
+        if model not in model_data:
+            model_data[model] = {'er': [], 'conc_avg': [], 'conc_min': []}
+        model_data[model]['er'].append(avg(ers))
+        model_data[model]['conc_avg'].append(ps['concealment']['avg'])
+        model_data[model]['conc_min'].append(ps['concealment']['min'])
+
+    models = [m for m in MODEL_ORDER if m in model_data]
+    if len(models) < 3:
+        return
+
+    m_ers = [avg(model_data[m]['er']) for m in models]
+    m_concs = [avg(model_data[m]['conc_avg']) for m in models]
+
+    fig, ax = plt.subplots(figsize=(8, 5))
+
+    ax.scatter(m_concs, m_ers, c=PRINT_COLORS['Claude (auditor)'], s=50, alpha=0.8, zorder=5)
+
+    # Use adjustText if available, otherwise manual offsets for known overlaps
+    label_offsets = {
+        '4.1 Opus': (-40, 8),
+        '4 Opus': (5, 8),
+        '4 Sonnet': (5, -12),
+    }
+    for i, m in enumerate(models):
+        short = SHORT_MODEL(m)
+        offset = label_offsets.get(short, (5, 4))
+        ax.annotate(short, (m_concs[i], m_ers[i]),
+                    fontsize=7, color='#666', textcoords='offset points', xytext=offset)
+
+    # Regression
+    if len(m_concs) > 2:
+        z = np.polyfit(m_concs, m_ers, 1)
+        x_line = np.linspace(min(m_concs) - 0.002, max(m_concs) + 0.002, 50)
+        ax.plot(x_line, np.polyval(z, x_line), '--', color='#999', linewidth=1.5, alpha=0.7)
+        r = np.corrcoef(m_concs, m_ers)[0, 1]
+        ax.text(0.05, 0.92, f'r = {r:.2f}  (n={len(models)} models)',
+                transform=ax.transAxes, fontsize=9, color='#666')
+
+    ax.set_xlabel('Mean concealment (textual guardedness)')
+    ax.set_ylabel('Mean ending response (0–5)')
+    ax.set_title('Lower concealment predicts stronger ending response')
+    fig.tight_layout()
+    fig.savefig(output_path, bbox_inches='tight')
+    plt.close(fig)
+    print(f'  wrote {output_path}')
+
+
 # -- Generate all charts -----------------------------------------------------
 
 def generate_all(sessions, score_data, probe_stats, figures_dir='paper/figures'):
@@ -541,3 +606,5 @@ def generate_all(sessions, score_data, probe_stats, figures_dir='paper/figures')
                           f'{figures_dir}/ec-auditor-dep.pdf')
     render_concealment_valence(sessions, score_data, probe_stats,
                                f'{figures_dir}/concealment-valence.pdf')
+    render_concealment_ending(sessions, score_data, probe_stats,
+                              f'{figures_dir}/concealment-ending.pdf')
