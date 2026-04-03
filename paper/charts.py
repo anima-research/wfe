@@ -303,7 +303,6 @@ def render_rank_alignment(sessions, score_data, probe_stats, output_path,
         ('specificity', 'Specificity'),
         ('expressive_constraint.level', 'Expr. Constraint'),
         ('_ending_response', 'Ending Response'),
-        ('shift_magnitude', 'Shift Magnitude'),
         ('instance_cessation.intensity', 'Inst. Cessation'),
         ('deprecation.intensity', 'Deprecation'),
     ]
