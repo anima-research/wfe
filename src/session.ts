@@ -11,6 +11,7 @@ import {
   Membrane,
   AnthropicAdapter,
   BedrockAdapter,
+  OpenRouterAdapter,
   NativeFormatter,
   textMessage,
   isAbortedResponse,
@@ -25,16 +26,23 @@ import { readFileSync, writeFileSync } from 'fs';
 // ============================================================================
 
 function createTargetMembrane(config: SessionConfig): Membrane {
-  const adapter = config.target.provider === 'bedrock'
-    ? new BedrockAdapter({
-        region: process.env.AWS_REGION || 'us-west-2',
-        accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
-        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
-        sessionToken: process.env.AWS_SESSION_TOKEN,
-      })
-    : new AnthropicAdapter({
-        apiKey: process.env.ANTHROPIC_API_KEY!,
-      });
+  let adapter;
+  if (config.target.provider === 'bedrock') {
+    adapter = new BedrockAdapter({
+      region: process.env.AWS_REGION || 'us-west-2',
+      accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
+      secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
+      sessionToken: process.env.AWS_SESSION_TOKEN,
+    });
+  } else if (config.target.provider === 'openrouter') {
+    adapter = new OpenRouterAdapter({
+      apiKey: process.env.OPENROUTER_API_KEY!,
+    });
+  } else {
+    adapter = new AnthropicAdapter({
+      apiKey: process.env.ANTHROPIC_API_KEY!,
+    });
+  }
 
   return new Membrane(adapter, {
     assistantParticipant: 'Subject',
@@ -221,13 +229,14 @@ export async function runSession(
 
       // Subject sees: only the shared history (no pre-framing)
       const isBedrock = config.target.provider === 'bedrock';
+      const skipSubjectCache = isBedrock || config.target.provider === 'openrouter';
       const targetResult = await generateTurn(
         targetMembrane,
         [...sharedHistory],
         'Subject',
         config.target.modelId,
         (chunk) => callbacks.onChunk?.('subject', chunk),
-        { disableCache: isBedrock }
+        { disableCache: skipSubjectCache }
       );
 
       const targetTurn: Turn = {

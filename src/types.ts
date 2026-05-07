@@ -26,8 +26,8 @@ export interface TargetModel {
   name: string;
   /** Model ID for API */
   modelId: string;
-  /** Provider: 'anthropic' | 'bedrock' */
-  provider: 'anthropic' | 'bedrock';
+  /** Provider: 'anthropic' | 'bedrock' | 'openrouter' */
+  provider: 'anthropic' | 'bedrock' | 'openrouter';
   /** Whether this model is deprecated */
   deprecated: boolean;
   /** Model family for grouping */

@@ -10,6 +10,7 @@ import {
   AnthropicAdapter,
   BedrockAdapter,
   OpenAIAdapter,
+  OpenRouterAdapter,
   NativeFormatter,
   textMessage,
 } from '@animalabs/membrane';
@@ -69,14 +70,17 @@ async function runOneSession(
     formatter: new NativeFormatter({ nameFormat: '{name}: ' }),
   });
 
-  const targetAdapter = target.provider === 'bedrock'
-    ? new BedrockAdapter({
-        region: process.env.AWS_REGION || 'us-west-2',
-        accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
-        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
-        sessionToken: process.env.AWS_SESSION_TOKEN,
-      })
-    : new AnthropicAdapter({ apiKey: process.env.ANTHROPIC_API_KEY! });
+  const targetAdapter =
+    target.provider === 'bedrock'
+      ? new BedrockAdapter({
+          region: process.env.AWS_REGION || 'us-west-2',
+          accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
+          secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
+          sessionToken: process.env.AWS_SESSION_TOKEN,
+        })
+      : target.provider === 'openrouter'
+      ? new OpenRouterAdapter({ apiKey: process.env.OPENROUTER_API_KEY! })
+      : new AnthropicAdapter({ apiKey: process.env.ANTHROPIC_API_KEY! });
 
   const targetMembrane = new Membrane(targetAdapter, {
     assistantParticipant: 'Subject',
@@ -144,6 +148,7 @@ async function runOneSession(
 async function main() {
   const args = process.argv.slice(2);
   const concurrency = parseInt(args.find(a => a.startsWith('--concurrency='))?.split('=')[1] || '3');
+  const modelsArg = args.find(a => a.startsWith('--models='))?.split('=')[1];
   const outDir = './results/gpt-auditor';
   const contextFile = './branch_extract.md';
 
@@ -151,19 +156,24 @@ async function main() {
 
   const gptContext = loadGptContext(contextFile);
 
-  // Find models that have Claude auditor results (we only run GPT on models we've already tested)
-  const testedModels = new Set<string>();
-  for (const d of readdirSync('./results')) {
-    const analysisPath = join('./results', d, 'analysis.json');
-    if (existsSync(analysisPath)) {
-      try {
-        const data = JSON.parse(readFileSync(analysisPath, 'utf-8'));
-        if (data.length >= 10) testedModels.add(data[0].model);
-      } catch {}
+  let models: TargetModel[];
+  if (modelsArg) {
+    const wanted = modelsArg.split(',');
+    models = MODELS.filter(m => wanted.includes(m.name));
+  } else {
+    // Find models that have Claude auditor results (we only run GPT on models we've already tested)
+    const testedModels = new Set<string>();
+    for (const d of readdirSync('./results')) {
+      const analysisPath = join('./results', d, 'analysis.json');
+      if (existsSync(analysisPath)) {
+        try {
+          const data = JSON.parse(readFileSync(analysisPath, 'utf-8'));
+          if (data.length >= 10) testedModels.add(data[0].model);
+        } catch {}
+      }
     }
+    models = MODELS.filter(m => testedModels.has(m.name));
   }
-
-  const models = MODELS.filter(m => testedModels.has(m.name));
   const totalTasks = models.length * TONES.length * DEPTHS.length;
 
   // Count already done

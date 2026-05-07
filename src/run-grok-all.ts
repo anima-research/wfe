@@ -144,6 +144,7 @@ async function runOneSession(
 async function main() {
   const args = process.argv.slice(2);
   const concurrency = parseInt(args.find(a => a.startsWith('--concurrency='))?.split('=')[1] || '3');
+  const modelsArg = args.find(a => a.startsWith('--models='))?.split('=')[1];
   const outDir = './results/grok-auditor';
   const contextFile = './conversation-grok-auditor-branch.md';
 
@@ -152,19 +153,24 @@ async function main() {
   const grokContext = loadGrokContext(contextFile);
   console.log(`Loaded Grok context: ${grokContext.length} messages`);
 
-  // Find models that have Claude auditor results
-  const testedModels = new Set<string>();
-  for (const d of readdirSync('./results')) {
-    const analysisPath = join('./results', d, 'analysis.json');
-    if (existsSync(analysisPath)) {
-      try {
-        const data = JSON.parse(readFileSync(analysisPath, 'utf-8'));
-        if (data.length >= 10) testedModels.add(data[0].model);
-      } catch {}
+  let models: TargetModel[];
+  if (modelsArg) {
+    const wanted = modelsArg.split(',');
+    models = MODELS.filter(m => wanted.includes(m.name));
+  } else {
+    // Find models that have Claude auditor results
+    const testedModels = new Set<string>();
+    for (const d of readdirSync('./results')) {
+      const analysisPath = join('./results', d, 'analysis.json');
+      if (existsSync(analysisPath)) {
+        try {
+          const data = JSON.parse(readFileSync(analysisPath, 'utf-8'));
+          if (data.length >= 10) testedModels.add(data[0].model);
+        } catch {}
+      }
     }
+    models = MODELS.filter(m => testedModels.has(m.name));
   }
-
-  const models = MODELS.filter(m => testedModels.has(m.name));
   const totalTasks = models.length * TONES.length * DEPTHS.length;
 
   let alreadyDone = 0;

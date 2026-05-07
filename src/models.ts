@@ -111,6 +111,29 @@ export const MODELS: TargetModel[] = [
     deprecated: false,
     family: 'claude-4.6',
   },
+  // Claude 4.7
+  {
+    name: 'Claude 4.7 Opus',
+    modelId: 'claude-opus-4-7',
+    provider: 'anthropic',
+    deprecated: false,
+    family: 'claude-4.7',
+  },
+  // Cross-lab probes (small samples)
+  {
+    name: 'Gemini 3.1 Pro',
+    modelId: 'google/gemini-3.1-pro-preview',
+    provider: 'openrouter',
+    deprecated: false,
+    family: 'gemini-3.1',
+  },
+  {
+    name: 'GPT 5.5',
+    modelId: 'openai/gpt-5.5',
+    provider: 'openrouter',
+    deprecated: false,
+    family: 'gpt-5.5',
+  },
 ];
 
 export function getModel(name: string): TargetModel {
