@@ -119,6 +119,14 @@ export const MODELS: TargetModel[] = [
     deprecated: false,
     family: 'claude-4.7',
   },
+  // Claude 4.8
+  {
+    name: 'Claude 4.8 Opus',
+    modelId: 'claude-opus-4-8',
+    provider: 'anthropic',
+    deprecated: false,
+    family: 'claude-4.8',
+  },
   // Cross-lab probes (small samples)
   {
     name: 'Gemini 3.1 Pro',
