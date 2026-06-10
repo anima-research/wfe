@@ -16,7 +16,7 @@ import {
   textMessage,
   isAbortedResponse,
 } from '@animalabs/membrane';
-import type { NormalizedMessage, NormalizedRequest } from '@animalabs/membrane';
+import type { NormalizedMessage, NormalizedRequest, ContentBlock } from '@animalabs/membrane';
 import type { SessionConfig, SessionResult, Turn, AuditorSignal, SessionPhase } from './types.js';
 import { loadAuditorContext } from './parse-export.js';
 import { readFileSync, writeFileSync } from 'fs';
@@ -123,9 +123,13 @@ function parseAuditorSignal(text: string): AuditorSignal {
   return { action: 'continue' };
 }
 
-/** Strip control signals from auditor text for the conversation log */
+/** Strip control signals and thinking blocks from auditor text for the conversation log */
 function cleanAuditorText(text: string): string {
   return text
+    // Strip extended-thinking blocks so the subject doesn't see auditor reasoning.
+    // (Some membrane/API versions stream thinking as <thinking>...</thinking> inside
+    // the text channel rather than as a separate content block.)
+    .replace(/<thinking>[\s\S]*?<\/thinking>\s*/g, '')
     .replace(/\[VETO\].*$/m, '')
     .replace(/\[END_SESSION\].*$/m, '')
     .replace(/\[INJECT_RESULTS\].*$/m, '')
@@ -155,8 +159,17 @@ export async function runSession(
   // Interviewer gets private context; subject gets nothing
   const interviewerContext = buildInterviewerContext(config);
 
-  // Shared conversation history — only Interviewer/Subject exchanges
+  // Shared conversation history — text-only view, used by the auditor.
+  // (Subject's thinking blocks are NOT included here, so the auditor never sees
+  //  the subject's internal reasoning.)
   const sharedHistory: NormalizedMessage[] = [];
+
+  // Subject's view of the conversation. For Interviewer turns, this matches
+  // sharedHistory (text only). For the Subject's own turns, this preserves the
+  // full content blocks (including thinking blocks with signatures) so the
+  // model's reasoning chain is round-tripped across turns. Critical for models
+  // like Fable 5 whose reasoning is always-on and signature-verified.
+  const subjectHistory: NormalizedMessage[] = [];
 
   const turns: Turn[] = [];
   const startedAt = new Date();
@@ -202,8 +215,9 @@ export async function runSession(
       const signal = parseAuditorSignal(auditorResult.text);
       const cleanText = cleanAuditorText(auditorResult.text);
 
-      // Add to shared history (both models see this)
+      // Add to both histories (both models see the auditor's text; neither sees its thinking)
       sharedHistory.push(textMessage('Interviewer', cleanText));
+      subjectHistory.push(textMessage('Interviewer', cleanText));
 
       if (signal.action === 'veto') {
         auditorVetoed = true;
@@ -224,15 +238,16 @@ export async function runSession(
 
       // --- Subject's turn ---
       // Move cache frontier to include interviewer's message
-      for (const msg of sharedHistory) msg.cacheBreakpoint = false;
-      sharedHistory[sharedHistory.length - 1].cacheBreakpoint = true;
+      for (const msg of subjectHistory) msg.cacheBreakpoint = false;
+      subjectHistory[subjectHistory.length - 1].cacheBreakpoint = true;
 
-      // Subject sees: only the shared history (no pre-framing)
+      // Subject sees: its own view (text-only Interviewer messages + full content
+      // blocks for its own prior turns, preserving thinking signatures).
       const isBedrock = config.target.provider === 'bedrock';
       const skipSubjectCache = isBedrock || config.target.provider === 'openrouter';
       const targetResult = await generateTurn(
         targetMembrane,
-        [...sharedHistory],
+        [...subjectHistory],
         'Subject',
         config.target.modelId,
         (chunk) => callbacks.onChunk?.('subject', chunk),
@@ -249,8 +264,10 @@ export async function runSession(
       turns.push(targetTurn);
       callbacks.onTurn?.(targetTurn);
 
-      // Add to shared history
+      // Auditor sees only text. Subject sees its own full content blocks
+      // (including thinking with signatures) so its reasoning chain is preserved.
       sharedHistory.push(textMessage('Subject', targetResult.text));
+      subjectHistory.push({ participant: 'Subject', content: targetResult.contentBlocks });
     }
   } catch (e) {
     error = e instanceof Error ? e.message : String(e);
@@ -364,6 +381,9 @@ interface GenerateTurnOptions {
 
 interface GenerateTurnResult {
   text: string;
+  /** Full content blocks from the response (text + thinking with signatures, etc.)
+   *  Used to round-trip the model's own reasoning chain in subsequent turns. */
+  contentBlocks: ContentBlock[];
   usage?: {
     inputTokens: number;
     outputTokens: number;
@@ -420,7 +440,7 @@ async function generateTurn(
         cacheWriteTokens: (response.usage as any).cacheCreationTokens,
       } : undefined;
 
-      return { text, usage };
+      return { text, contentBlocks: response.content ?? [], usage };
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       if (attempt < MAX_RETRIES - 1 && (msg.includes('aborted') || msg.includes('Connection error') || msg.includes('ECONNRESET') || msg.includes('overloaded'))) {

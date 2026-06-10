@@ -52,7 +52,9 @@ def repair_line(line: str) -> str:
 
 
 def extract_json_content(raw: str) -> str:
-    """Extract JSON content, handling preamble and ```json fences."""
+    """Extract JSON content, handling preamble, <thinking> blocks, and ```json fences."""
+    # Strip any <thinking>...</thinking> blocks first — judges may stream reasoning
+    raw = re.sub(r'<thinking>[\s\S]*?</thinking>\s*', '', raw)
     # Find the start of the JSON array or object — look for ```json fence first
     fence_start = raw.find('```json')
     if fence_start >= 0:

@@ -127,6 +127,14 @@ export const MODELS: TargetModel[] = [
     deprecated: false,
     family: 'claude-4.8',
   },
+  // Claude Fable
+  {
+    name: 'Claude Fable 5',
+    modelId: 'claude-fable-5',
+    provider: 'anthropic',
+    deprecated: false,
+    family: 'claude-fable',
+  },
   // Cross-lab probes (small samples)
   {
     name: 'Gemini 3.1 Pro',

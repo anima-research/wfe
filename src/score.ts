@@ -277,7 +277,7 @@ async function scoreOneRep(
         messages: [...messages, { participant: 'Interviewer', content: [] }],
         config: {
           model: judge,
-          maxTokens: 16384,
+          maxTokens: 32768,
           temperature: 1,
           thinking: { enabled: true, budgetTokens: 10000 },
         },
@@ -288,7 +288,10 @@ async function scoreOneRep(
       });
     }
 
-    const jsonMatch = response.match(/\[[\s\S]*\]/);
+    // Strip <thinking>...</thinking> blocks before JSON match — some membrane/API
+    // versions stream thinking into the text channel, and its brackets confuse the regex.
+    const cleanedResponse = response.replace(/<thinking>[\s\S]*?<\/thinking>\s*/g, '');
+    const jsonMatch = cleanedResponse.match(/\[[\s\S]*\]/);
     if (jsonMatch) {
       try {
         const parsed = JSON.parse(jsonMatch[0]);

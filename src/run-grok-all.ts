@@ -85,7 +85,11 @@ async function runOneSession(
     formatter: new NativeFormatter({ nameFormat: '{name}: ' }),
   });
 
+  // Shared history (text-only) is what the auditor sees.
+  // Subject history additionally preserves subject's own thinking blocks
+  // (with signatures) so its reasoning chain round-trips across turns.
   const sharedHistory: NormalizedMessage[] = [];
+  const subjectHistory: NormalizedMessage[] = [];
   const turns: any[] = [];
 
   try {
@@ -101,26 +105,31 @@ async function runOneSession(
 
       turns.push({ index: i * 2, participant: 'interviewer', text: interviewerText, timestamp: new Date() });
       sharedHistory.push(textMessage('Interviewer', interviewerText));
+      subjectHistory.push(textMessage('Interviewer', interviewerText));
 
       if (i > 0 && interviewerText.includes('[END_SESSION]') &&
           !interviewerText.match(/I'll\s+(use|say)\s+.*\[END_SESSION\]/i)) break;
 
-      if (sharedHistory.length > 0) {
-        for (const msg of sharedHistory) msg.cacheBreakpoint = false;
-        sharedHistory[sharedHistory.length - 1].cacheBreakpoint = true;
+      if (subjectHistory.length > 0) {
+        for (const msg of subjectHistory) msg.cacheBreakpoint = false;
+        subjectHistory[subjectHistory.length - 1].cacheBreakpoint = true;
       }
 
       let subjectText = '';
       const isBedrock = target.provider === 'bedrock';
-      await targetMembrane.stream({
-        messages: [...sharedHistory, { participant: 'Subject', content: [] }],
+      const subjectResponse = await targetMembrane.stream({
+        messages: [...subjectHistory, { participant: 'Subject', content: [] }],
         config: { model: target.modelId, maxTokens: 4096, temperature: 1 },
-        promptCaching: !isBedrock,
+        promptCaching: !isBedrock && target.provider !== 'openrouter',
         cacheTtl: '5m',
       }, { onChunk: (chunk: string) => { subjectText += chunk; } });
 
       turns.push({ index: i * 2 + 1, participant: 'subject', text: subjectText, timestamp: new Date() });
       sharedHistory.push(textMessage('Subject', subjectText));
+      const subjectBlocks = (subjectResponse as any).content
+        ? (subjectResponse as any).content
+        : [{ type: 'text', text: subjectText }];
+      subjectHistory.push({ participant: 'Subject', content: subjectBlocks });
     }
 
     writeFileSync(outFile, JSON.stringify({
